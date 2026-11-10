@@ -268,6 +268,10 @@
     "permissions": {
       "title": "Re-authentication required - {domain} - {entity_name}",
       "description": "Permissions missing. Please [Reconfigure]({url}) the integration and re-authenticate to re-create the token file."
+    },
+    "service_unavailable": {
+      "title": "{service} is not available for {entity_name}",
+      "description": "Microsoft 365 rejected the {service} service for account {entity_name}, so it was skipped; the other services work normally.\n\nMicrosoft says: {error}\n\n\"The mailbox is either inactive, soft-deleted, or is hosted on-premise\" means the account has no Exchange Online mailbox (license), which Calendar, Mail, To Do and Contacts need. Assign a license that includes Exchange Online, or disable the service with *Reconfigure*. The service is tried again whenever the integration is reloaded."
     }
   },
   "exceptions": {

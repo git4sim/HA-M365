@@ -247,5 +247,11 @@
     "contacts_entry_required": {
       "message": "Mehrere Microsoft-365-Konten haben Kontakte aktiviert – bitte das zu durchsuchende Konto (config_entry_id) angeben."
     }
+  },
+  "issues": {
+    "service_unavailable": {
+      "title": "{service} ist für {entity_name} nicht verfügbar",
+      "description": "Microsoft 365 hat den Dienst {service} für das Konto {entity_name} abgelehnt, er wurde übersprungen; die übrigen Dienste laufen normal.\n\nMeldung von Microsoft: {error}\n\n„The mailbox is either inactive, soft-deleted, or is hosted on-premise“ bedeutet, dass das Konto kein Exchange-Online-Postfach (Lizenz) hat – das brauchen Kalender, Mail, To Do und Kontakte. Eine Lizenz mit Exchange Online zuweisen oder den Dienst über *Neu konfigurieren* abschalten. Bei jedem Neuladen der Integration wird es erneut versucht."
+    }
   }
 }

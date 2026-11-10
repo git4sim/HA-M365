@@ -8,9 +8,10 @@ services that can be enabled per account.
 import logging
 
 from oauthlib.oauth2.rfc6749.errors import InvalidClientError
+from requests.exceptions import HTTPError
 
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv, issue_registry as ir
 from homeassistant.helpers.network import get_url
 from homeassistant.helpers.typing import ConfigType
@@ -40,6 +41,23 @@ from .services import SERVICE_DEFINITIONS, platforms_for
 _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+ISSUE_SERVICE_UNAVAILABLE = "service_unavailable"
+# Graph answers that retrying will not change; 401 (auth) and 429
+# (throttling) are left to the normal error handling.
+SERVICE_REJECTED_STATUS = {400, 403, 404}
+
+
+def _service_rejection(err: BaseException | None) -> str | None:
+    """Return Graph's message if err is a permanent rejection of a service."""
+    while err is not None:
+        if isinstance(err, HTTPError):
+            response = err.response
+            if response is not None and response.status_code in SERVICE_REJECTED_STATUS:
+                return str(err).split("Error Message: ", 1)[-1]
+            return None
+        err = err.__cause__
+    return None
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:  # pylint: disable=unused-argument
@@ -96,9 +114,38 @@ async def async_setup_entry(hass: HomeAssistant, entry: MS365ConfigEntry) -> boo
     for name in enabled_services(entry.data):
         definition = SERVICE_DEFINITIONS[name]
         _LOGGER.debug("Service setup - %s", name)
-        coordinator, sensors, platforms = await definition.setup.async_do_setup(
-            hass, MS365ServiceEntry(entry, name), ha_account.account
-        )
+        issue_id = create_issue_id(f"{ISSUE_SERVICE_UNAVAILABLE}_{name}", entry.entry_id)
+        try:
+            coordinator, sensors, platforms = await definition.setup.async_do_setup(
+                hass, MS365ServiceEntry(entry, name), ha_account.account
+            )
+        except (HTTPError, ConfigEntryNotReady) as err:
+            # A service rejected by Microsoft (e.g. no Exchange Online mailbox
+            # for Calendar/Mail) must not take down the other services.
+            if not (message := _service_rejection(err)):
+                raise
+            _LOGGER.warning(
+                "%s - service '%s' is not available for this account and was skipped: %s",
+                entry.data.get(CONF_ENTITY_NAME),
+                name,
+                message,
+            )
+            ir.async_create_issue(
+                hass,
+                DOMAIN,
+                issue_id,
+                config_entry_id=entry.entry_id,
+                is_fixable=False,
+                severity=ir.IssueSeverity.WARNING,
+                translation_key=ISSUE_SERVICE_UNAVAILABLE,
+                translation_placeholders={
+                    "service": name,
+                    CONF_ENTITY_NAME: entry.data.get(CONF_ENTITY_NAME),
+                    "error": message,
+                },
+            )
+            continue
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
         services[name] = MS365ServiceData(coordinator, sensors, list(platforms))
 
     personal_account = await async_check_personal_account(hass, token_backend)

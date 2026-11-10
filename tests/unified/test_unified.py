@@ -13,7 +13,7 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.exceptions import ServiceValidationError
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import entity_registry as er, issue_registry as ir
 from pytest_homeassistant.common import MockConfigEntry
 
 from tests.calendar.helpers.utils import build_token_file, build_token_url, mock_token
@@ -322,3 +322,48 @@ async def test_reauth_flow(hass: HomeAssistant, requests_mock: Mocker, setup_uni
     )
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "reauth_successful"
+
+
+MAILBOX_ERROR = {
+    "error": {
+        "code": "MailboxNotEnabledForRESTAPI",
+        "message": "The mailbox is either inactive, soft-deleted, or is hosted on-premise.",
+    }
+}
+
+
+async def test_rejected_service_is_skipped(
+    hass: HomeAssistant, tmp_path, all_mocks: Mocker, unified_entry
+) -> None:
+    """A service Microsoft rejects (no mailbox) does not break the others."""
+    all_mocks.get(
+        "https://graph.microsoft.com/v1.0/me/calendars", status_code=404, json=MAILBOX_ERROR
+    )
+    all_mocks.get(
+        "https://graph.microsoft.com/v1.0/me/mailFolders/Inbox/messages", status_code=404, json=MAILBOX_ERROR
+    )
+    build_token_file(tmp_path, ALL_TOKEN_PERMS)
+    assert await hass.config_entries.async_setup(unified_entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert unified_entry.state is ConfigEntryState.LOADED
+    assert hass.states.get("calendar.test_calendar1") is None
+    assert hass.states.get("todo.test_todo_list_1") is not None
+    assert hass.states.get("sensor.test_status") is not None
+    assert "calendar" not in unified_entry.runtime_data.services
+
+    issues = ir.async_get(hass).issues
+    issue = issues[(DOMAIN, f"service_unavailable_calendar_{unified_entry.entry_id}")]
+    assert issue.translation_placeholders["error"].startswith("The mailbox is either inactive")
+    assert await hass.config_entries.async_unload(unified_entry.entry_id)
+
+
+async def test_transient_error_is_not_skipped(
+    hass: HomeAssistant, tmp_path, all_mocks: Mocker, unified_entry
+) -> None:
+    """Server errors still make the whole entry retry."""
+    all_mocks.get("https://graph.microsoft.com/v1.0/me/calendars", status_code=503, json={"error": {}})
+    build_token_file(tmp_path, ALL_TOKEN_PERMS)
+    await hass.config_entries.async_setup(unified_entry.entry_id)
+    await hass.async_block_till_done()
+    assert unified_entry.state is not ConfigEntryState.LOADED
