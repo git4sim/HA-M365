@@ -1,0 +1,38 @@
+"""Diagnostics support for M365."""
+
+from homeassistant.components.diagnostics import async_redact_data
+from homeassistant.const import CONF_CLIENT_ID, CONF_CLIENT_SECRET
+from homeassistant.core import HomeAssistant
+
+from .classes.config_entry import MS365ConfigEntry
+from .classes.service_entry import MS365ServiceEntry
+from .const import CONF_SHARED_MAILBOX, CONF_TENANT_ID
+from .services import SERVICE_DEFINITIONS
+
+TO_REDACT = {CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_SHARED_MAILBOX, CONF_TENANT_ID}
+
+
+async def async_get_config_entry_diagnostics(
+    hass: HomeAssistant,
+    entry: MS365ConfigEntry,
+) -> dict:
+    """Return diagnostics for a config entry."""
+    response = {
+        "config_entry_data": async_redact_data(dict(entry.data), TO_REDACT),
+        "config_entry_options": dict(entry.runtime_data.options),
+        "config_granted_permissions": list(entry.runtime_data.permissions.permissions),
+        "config_requested_permissions": list(
+            entry.runtime_data.permissions.requested_permissions
+        ),
+    }
+    yaml = {}
+    for name in entry.runtime_data.services:
+        diagnostics = SERVICE_DEFINITIONS[name].diagnostics
+        if service_diagnostics := await diagnostics.async_integration_diagnostics(
+            hass, MS365ServiceEntry(entry, name)
+        ):
+            yaml[name] = service_diagnostics
+    if yaml:
+        response["YAML"] = yaml
+
+    return response

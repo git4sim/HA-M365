@@ -1,0 +1,82 @@
+"""Utilities for MS365 testing."""
+
+import shutil
+
+import yaml
+
+from custom_components.m365.services.calendar.const_integration import (
+    CONF_ADVANCED_OPTIONS,
+    CONF_CALENDAR_LIST,
+    CONF_DAYS_BACKWARD,
+    CONF_DAYS_FORWARD,
+    CONF_HOURS_BACKWARD_TO_GET,
+    CONF_HOURS_FORWARD_TO_GET,
+    CONF_MAX_RESULTS,
+    CONF_TRACK_NEW_CALENDAR,
+    CONF_UPDATE_INTERVAL,
+    DEFAULT_DAYS_BACKWARD,
+    DEFAULT_DAYS_FORWARD,
+    DEFAULT_UPDATE_INTERVAL,
+    DOMAIN,
+)
+from homeassistant.const import CONF_NAME
+from homeassistant.core import HomeAssistant
+
+from ...const import STORAGE_LOCATION, TEST_DATA_INTEGRATION_LOCATION
+from ...helpers.mock_config_entry import MS365MockConfigEntry
+from ..const_integration import UPDATE_CALENDAR_LIST
+
+
+def yaml_setup(tmp_path, infile):
+    """Create a yaml file."""
+    fromfile = TEST_DATA_INTEGRATION_LOCATION / f"yaml/{infile}.yaml"
+    tofile = tmp_path / STORAGE_LOCATION / f"{DOMAIN}s_test.yaml"
+    shutil.copy(fromfile, tofile)
+
+
+async def update_options(
+    hass: HomeAssistant,
+    base_config_entry: MS365MockConfigEntry,
+) -> None:
+    """Test the options flow."""
+
+    result = await hass.config_entries.options.async_init(base_config_entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_TRACK_NEW_CALENDAR: False,
+            CONF_CALENDAR_LIST: UPDATE_CALENDAR_LIST,
+            CONF_ADVANCED_OPTIONS: {
+                CONF_UPDATE_INTERVAL: DEFAULT_UPDATE_INTERVAL,
+                CONF_DAYS_BACKWARD: DEFAULT_DAYS_BACKWARD,
+                CONF_DAYS_FORWARD: DEFAULT_DAYS_FORWARD,
+            },
+        },
+    )
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_NAME: "Calendar1_Changed",
+            CONF_HOURS_FORWARD_TO_GET: 48,
+            CONF_HOURS_BACKWARD_TO_GET: -48,
+            CONF_MAX_RESULTS: 5,
+        },
+    )
+
+
+def check_yaml_file_contents(tmp_path, filename):
+    """Check contents are what is expected."""
+    path = tmp_path / STORAGE_LOCATION / f"{DOMAIN}s_test.yaml"
+    with open(path, encoding="utf8") as file:
+        created_yaml = file.read()
+    path = TEST_DATA_INTEGRATION_LOCATION / f"yaml/{filename}.yaml"
+    with open(path, encoding="utf8") as file:
+        compare_yaml = file.read()
+    assert created_yaml == compare_yaml
+
+
+def read_yaml_file(tmp_path):
+    """Read the calendars yaml file."""
+    path = tmp_path / STORAGE_LOCATION / f"{DOMAIN}s_test.yaml"
+    with open(path, encoding="utf8") as file:
+        return yaml.safe_load(file)

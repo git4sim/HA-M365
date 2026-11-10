@@ -1,0 +1,112 @@
+"""Calendar constants."""
+
+from enum import Enum
+
+from homeassistant.const import Platform
+
+
+class EventResponse(Enum):
+    """Event response."""
+
+    Accept = "accept"  # pylint: disable=invalid-name
+    Tentative = "tentative"  # pylint: disable=invalid-name
+    Decline = "decline"  # pylint: disable=invalid-name
+
+
+PLATFORMS: list[Platform] = [Platform.CALENDAR]
+DOMAIN = "m365"
+
+ATTR_ALL_DAY = "all_day"
+ATTR_ATTENDEES = "attendees"
+ATTR_BODY = "body"
+ATTR_BODY_IS_TEXT = "body_is_text"
+ATTR_CATEGORIES = "categories"
+ATTR_COLOR = "color"
+ATTR_DATA = "data"
+ATTR_EMAIL = "email"
+ATTR_END = "end"
+ATTR_END_DATE_TIME = "end_date_time"
+ATTR_EVENT_ID = "event_id"
+ATTR_HEX_COLOR = "hex_color"
+ATTR_IS_ALL_DAY = "is_all_day"
+ATTR_IS_REMINDER_ON = "is_reminder_on"
+ATTR_LOCATION = "location"
+ATTR_MESSAGE = "message"
+ATTR_RESPONSE = "response"
+ATTR_REMIND_BEFORE_MINUTES = "remind_before_minutes"
+ATTR_RRULE = "rrule"
+ATTR_SEND_RESPONSE = "send_response"
+ATTR_SENSITIVITY = "sensitivity"
+ATTR_SHOW_AS = "show_as"
+ATTR_START = "start"
+ATTR_START_DATE_TIME = "start_date_time"
+ATTR_SUBJECT = "subject"
+ATTR_SYNC_STATE = "sync_state"
+ATTR_TYPE = "type"
+
+CALENDAR_ENTITY_ID_FORMAT = "calendar.{}"
+
+CONF_ADVANCED_OPTIONS = "advanced_options"
+CONF_BASIC_CALENDAR = "basic_calendar"
+CONF_CAL_ID = "cal_id"
+CONF_CALENDAR_LIST = "calendar_list"
+CONF_CAN_EDIT = "can_edit"
+CONF_DAYS_BACKWARD = "days_backward"
+CONF_DAYS_FORWARD = "days_forward"
+CONF_DEVICE_ID = "device_id"
+CONF_ENTITIES = "entities"
+CONF_ENTITY = "entity"
+CONF_EXCLUDE = "exclude"
+CONF_GROUPS = "groups"
+CONF_HOURS_BACKWARD_TO_GET = "start_offset"
+CONF_HOURS_FORWARD_TO_GET = "end_offset"
+CONF_MAX_RESULTS = "max_results"
+CONF_SEARCH = "search"
+CONF_SENSITIVITY_EXCLUDE = "sensitivity_exclude"
+CONF_TRACK = "track"
+CONF_TRACK_NEW_CALENDAR = "track_new_calendar"
+CONF_UPDATE_INTERVAL = "update_interval"
+
+
+CONST_GROUP = "group:"
+
+DAYS = {
+    "MO": "monday",
+    "TU": "tuesday",
+    "WE": "wednesday",
+    "TH": "thursday",
+    "FR": "friday",
+    "SA": "saturday",
+    "SU": "sunday",
+}
+
+DEFAULT_DAYS_BACKWARD = -8
+DEFAULT_DAYS_FORWARD = 8
+DEFAULT_HOURS_BACKWARD_TO_GET = 0
+DEFAULT_HOURS_FORWARD_TO_GET = 24
+DEFAULT_UPDATE_INTERVAL = 60
+
+EVENT_CREATE_CALENDAR_EVENT = "create_calendar_event"
+EVENT_MODIFY_CALENDAR_EVENT = "modify_calendar_event"
+EVENT_MODIFY_CALENDAR_RECURRENCES = "modify_calendar_recurrences"
+EVENT_REMOVE_CALENDAR_EVENT = "remove_calendar_event"
+EVENT_REMOVE_CALENDAR_RECURRENCES = "remove_calendar_recurrences"
+EVENT_RESPOND_CALENDAR_EVENT = "respond_calendar_event"
+EVENT_SYNC = "event_sync"
+
+INDEXES = {
+    "+1": "first",
+    "+2": "second",
+    "+3": "third",
+    "+4": "fourth",
+    "-1": "last",
+}
+ITEMS = "items"
+
+PERM_CALENDARS_READ = "Calendars.Read"
+PERM_CALENDARS_READBASIC = "Calendars.ReadBasic"
+PERM_CALENDARS_READWRITE = "Calendars.ReadWrite"
+PERM_GROUP_READ_ALL = "Group.Read.All"
+PERM_GROUP_READWRITE_ALL = "Group.ReadWrite.All"
+
+YAML_CALENDARS_FILENAME = "m365_calendars{0}.yaml"

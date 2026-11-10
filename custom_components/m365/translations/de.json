@@ -1,0 +1,251 @@
+{
+  "config": {
+    "abort": {
+      "reconfigure_successful": "Neukonfiguration erfolgreich",
+      "reauth_successful": "Erneute Anmeldung erfolgreich"
+    },
+    "error": {
+      "already_configured": "Dieser Kontoname wird bereits verwendet. Bitte „Neu konfigurieren“ nutzen.",
+      "environment_variable_empty": "Die angegebene Umgebungsvariable ist leer",
+      "environment_variable_invalid": "Die angegebene Umgebungsvariable existiert nicht",
+      "error_authenticating": "Fehler bei der Anmeldung, Token ungültig – Details im Log",
+      "invalid_url": "Die zurückgegebene URL scheint keine gültige Microsoft-Weiterleitung zu sein",
+      "invalid_tenant": "Autorisierungs-URL konnte nicht erstellt werden, bitte Tenant-ID prüfen",
+      "permissions": "Mindestberechtigungen für Konto {entity_name} nicht erteilt",
+      "corrupted": "Token-Datei nach erfolgreicher Anmeldung beschädigt – Dateisystemfehler im Log prüfen",
+      "missing": "Token-Datei fehlt nach erfolgreicher Anmeldung – Dateisystemfehler im Log prüfen",
+      "token_file_error": "Fehler beim Abrufen der Token-Datei, Log prüfen. Sicherstellen, dass der Secret-Wert (nicht die Secret-ID) verwendet wird.",
+      "cannot_have_basic_shared": "Einfacher Kalender kann nicht mit einem freigegebenen Postfach genutzt werden",
+      "cannot_have_basic_update": "Einfacher Kalender kann nicht mit Änderungsaktionen genutzt werden",
+      "cannot_have_groups_shared": "Gruppenkalender können nicht mit einem freigegebenen Postfach genutzt werden",
+      "status_enable_should_be_read": "Für eine andere E-Mail-Adresse muss der Status-Sensor auf „Read“ stehen",
+      "no_services": "Mindestens einen Dienst auswählen"
+    },
+    "step": {
+      "user": {
+        "title": "Microsoft-365-Konto",
+        "description": "Zugangsdaten einer zuvor erstellten Entra-ID-App-Registrierung eingeben und die gewünschten Dienste wählen.",
+        "data": {
+          "entity_name": "Eindeutiger Name des Kontos",
+          "client_id": "Client-ID",
+          "environment_secret": "Client-Secret aus Umgebungsvariable verwenden",
+          "client_secret": "Client-Secret",
+          "client_sec_variable": "Umgebungsvariable mit dem Client-Secret",
+          "alt_auth_method": "Alternative (aufwendigere) Anmeldemethode verwenden",
+          "services": "Zu aktivierende Microsoft-365-Dienste",
+          "shared_mailbox": "E-Mail-Adresse/ID eines freigegebenen Postfachs (optional)"
+        },
+        "data_description": {
+          "services": "Jeder Dienst fordert nur die Graph-Berechtigungen an, die er braucht. Teams benötigt ein Geschäfts- oder Schulkonto.",
+          "shared_mailbox": "Gilt für Kalender, Mail und Kontakte. Nicht die eigene Adresse eintragen."
+        },
+        "sections": {
+          "api_options": {
+            "name": "Erweiterte API-Optionen",
+            "description": "Erweiterte Optionen für länderspezifische Clouds",
+            "data": {
+              "country": "API-Land",
+              "tenant_id": "Tenant-ID"
+            },
+            "data_description": {
+              "country": "Nur verwenden, wenn nötig – die Zugangsdaten werden an die gewählte API/Cloud gesendet.",
+              "tenant_id": "Azure-Tenant-ID für Single-Tenant-App-Registrierungen. Für Multi-Tenant-Apps leer lassen."
+            }
+          }
+        }
+      },
+      "services": {
+        "title": "Dienst-Einstellungen – {entity_name}",
+        "description": "Ausgewählte Dienste konfigurieren.",
+        "sections": {
+          "calendar": {
+            "name": "Kalender",
+            "data": {
+              "enable_update": "Änderungsaktionen aktivieren",
+              "basic_calendar": "Nur einfachen Lesezugriff (ReadBasic) verwenden",
+              "groups": "Gruppenkalender unterstützen"
+            }
+          },
+          "todo": {
+            "name": "To Do",
+            "data": {
+              "enable_update": "Änderungsaktionen aktivieren"
+            }
+          },
+          "mail": {
+            "name": "Mail",
+            "data": {
+              "enable_update": "Änderungsaktionen aktivieren (Mail senden, Benachrichtigungen)",
+              "enable_autoreply": "Automatische Antworten verwalten"
+            }
+          },
+          "teams": {
+            "name": "Teams",
+            "data": {
+              "chat_enable": "Chat-Sensor",
+              "status_enable": "Status-Sensor",
+              "alternate_email": "E-Mail-Adresse, deren Status überwacht wird"
+            }
+          }
+        }
+      },
+      "request_default": {
+        "title": "Autorisierung erforderlich – {entity_name}",
+        "description": "Link öffnen, anmelden und die URL, auf die weitergeleitet wird, in dieses Feld kopieren und absenden.\n\n[Microsoft-365-Konto verknüpfen]({auth_url}){failed_permissions}",
+        "data": {
+          "url": "Zurückgegebene URL"
+        }
+      },
+      "request_alt": {
+        "title": "Autorisierung erforderlich – {entity_name}",
+        "description": "Zum Verknüpfen des Microsoft-365-Kontos den Link öffnen, anmelden und zustimmen:\n\n[Microsoft-365-Konto verknüpfen]({auth_url}){failed_permissions}",
+        "submit": "Autorisierung erfolgreich"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "description": "Dienst zum Konfigurieren wählen",
+        "menu_options": {
+          "calendar": "Kalender",
+          "todo": "To Do",
+          "teams": "Teams"
+        }
+      },
+      "calendar_user": {
+        "description": "Optionen für {entity_name}",
+        "data": {
+          "track_new_calendar": "Neue Kalender aktivieren",
+          "calendar_list": "Aktivierte Kalender"
+        },
+        "sections": {
+          "advanced_options": {
+            "name": "Erweiterte Optionen",
+            "description": "Erweiterte Synchronisation",
+            "data": {
+              "update_interval": "Aktualisierungsintervall in Sekunden",
+              "days_backward": "Tage zurück",
+              "days_forward": "Tage voraus"
+            },
+            "data_description": {
+              "days_backward": "Tage in die Vergangenheit, die synchronisiert werden",
+              "days_forward": "Tage in die Zukunft, die synchronisiert werden"
+            }
+          }
+        }
+      },
+      "calendar_calendar_config": {
+        "description": "Optionen für {entity_name} – Kalender {device_id}",
+        "data": {
+          "name": "Anzeigename des Kalenders",
+          "end_offset": "Stunden-Versatz Ende",
+          "start_offset": "Stunden-Versatz Beginn",
+          "max_results": "Maximale Anzahl Termine",
+          "sensitivity_exclude": "Auszuschließende Vertraulichkeitsstufen"
+        }
+      },
+      "todo_user": {
+        "description": "Optionen für {entity_name}",
+        "data": {
+          "max_todos": "Maximale Anzahl Aufgaben",
+          "track_new": "Neue Aufgabenlisten aktivieren",
+          "todo_list": "Aktivierte Aufgabenlisten"
+        }
+      },
+      "todo_todo_config": {
+        "description": "Optionen für {entity_name} – Liste {name}",
+        "data": {
+          "due_end_offset": "Stunden voraus für Fälligkeit",
+          "due_start_offset": "Stunden zurück für Fälligkeit",
+          "show_completed": "Erledigte anzeigen"
+        }
+      },
+      "teams_user": {
+        "description": "Optionen für {entity_name}",
+        "data": {
+          "update_interval": "Aktualisierungsintervall in Sekunden"
+        }
+      }
+    },
+    "abort": {
+      "no_calendars": "Für dieses Konto wurden noch keine Kalender gefunden. Bitte sicherstellen, dass die Integration erfolgreich eingerichtet wurde, und erneut versuchen.",
+      "no_options": "Für die aktivierten Dienste gibt es keine Optionen"
+    }
+  },
+  "config_subentries": {
+    "mail": {
+      "entry_type": "Mail-Ordner",
+      "initiate_flow": {
+        "user": "Mail-Ordner hinzufügen",
+        "reconfigure": "Mail-Ordner ändern"
+      },
+      "step": {
+        "user": {
+          "title": "Mail-Ordner hinzufügen",
+          "description": "Ordner für {entity_name} hinzufügen",
+          "data": {
+            "entity_name": "Name dieses Ordners",
+            "folder": "Zu überwachender Mail-Ordner",
+            "max_items": "Maximale Anzahl Mails",
+            "is_unread": "Ungelesene",
+            "has_attachment": "Mit Anhängen",
+            "importance": "Wichtigkeit",
+            "subject_contains": "Betreff enthält",
+            "subject_is": "Betreff ist",
+            "body_contains": "Text enthält",
+            "download_attachments": "Anhangsnamen anzeigen",
+            "save_attachments": "Anhänge speichern",
+            "html_body": "HTML-Text ausgeben",
+            "show_body": "Text in der Entität anzeigen",
+            "from": "Nur Mails von dieser Adresse"
+          }
+        },
+        "reconfigure": {
+          "title": "Mail-Ordner ändern",
+          "description": "Ordner von {entity_name} ändern",
+          "data": {
+            "folder": "Zu überwachender Mail-Ordner",
+            "max_items": "Maximale Anzahl Mails",
+            "is_unread": "Ungelesene",
+            "has_attachment": "Mit Anhängen",
+            "importance": "Wichtigkeit",
+            "subject_contains": "Betreff enthält",
+            "subject_is": "Betreff ist",
+            "body_contains": "Text enthält",
+            "download_attachments": "Anhangsnamen anzeigen",
+            "save_attachments": "Anhänge speichern",
+            "html_body": "HTML-Text ausgeben",
+            "show_body": "Text in der Entität anzeigen",
+            "from": "Nur Mails von dieser Adresse"
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "services": {
+      "options": {
+        "calendar": "Kalender",
+        "todo": "To Do",
+        "mail": "Mail",
+        "teams": "Teams",
+        "contacts": "Kontakte"
+      }
+    },
+    "status": {
+      "options": {
+        "needs_action": "Nicht erledigt",
+        "completed": "Erledigt"
+      }
+    }
+  },
+  "exceptions": {
+    "file_not_allowed": {
+      "message": "Datei {filepath} liegt nicht in einem per allowlist_external_dirs freigegebenen Verzeichnis und kann nicht gesendet werden"
+    },
+    "contacts_entry_required": {
+      "message": "Mehrere Microsoft-365-Konten haben Kontakte aktiviert – bitte das zu durchsuchende Konto (config_entry_id) angeben."
+    }
+  }
+}

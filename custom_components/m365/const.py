@@ -1,0 +1,150 @@
+"""Constants."""
+
+from enum import StrEnum
+
+DOMAIN = "m365"
+
+# Services (Microsoft 365 workloads) bundled in this integration
+SERVICE_CALENDAR = "calendar"
+SERVICE_CONTACTS = "contacts"
+SERVICE_MAIL = "mail"
+SERVICE_TEAMS = "teams"
+SERVICE_TODO = "todo"
+SERVICES = [SERVICE_CALENDAR, SERVICE_TODO, SERVICE_MAIL, SERVICE_TEAMS, SERVICE_CONTACTS]
+# Teams needs a work or school account, so it is opt-in.
+DEFAULT_SERVICES = [SERVICE_CALENDAR, SERVICE_TODO, SERVICE_MAIL]
+
+CONF_SERVICES = "services"
+
+ATTR_DATA = "data"
+ATTR_ERROR = "error"
+ATTR_STATE = "state"
+
+AUTH_CALLBACK_DATA = "ms365_auth_callback"
+AUTH_CALLBACK_NAME = "api:ms365"
+# Kept identical to the upstream MS365 integrations so existing Entra ID
+# app registrations (redirect URI) keep working.
+AUTH_CALLBACK_PATH_ALT = "/api/ms365"
+
+AUTH_ERROR_ALREADY_CONFIGURED = "already_configured"
+AUTH_ERROR_AUTHENTICATING = "error_authenticating"
+AUTH_ERROR_ENVIRONMENT_VARIABLE_EMPTY = "environment_variable_empty"
+AUTH_ERROR_ENVIRONMENT_VARIABLE_INVALID = "environment_variable_invalid"
+AUTH_ERROR_INVALID_TENANT = "invalid_tenant"
+
+CONF_ENTITY_NAME = "entity_name"
+CONF_ENVIRONMENT_SECRET = "environment_secret"
+CONF_ALT_AUTH_METHOD = "alt_auth_method"
+CONF_API_COUNTRY = "country"
+CONF_API_OPTIONS = "api_options"
+CONF_TENANT_ID = "tenant_id"
+CONF_AUTH_URL = "auth_url"
+CONF_CLIENT_ID = "client_id"
+CONF_CLIENT_SECRET = "client_secret"  # nosec
+CONF_CLIENT_SECRET_VARIABLE = "client_sec_variable"
+CONF_ENABLE_UPDATE = "enable_update"
+CONF_ENTITY_KEY = "entity_key"
+CONF_ENTITY_TYPE = "entity_type"
+CONF_FAILED_PERMISSIONS = "failed_permissions"
+CONF_SHARED_MAILBOX = "shared_mailbox"
+CONF_URL = "url"
+
+CONST_UTC_TIMEZONE = "UTC"
+
+DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
+
+DEFAULT_TENANT_ID = "common"
+
+EVENT_HA_EVENT = "ha_event"
+
+MS365_CLIENT_SECRET = "MS365_CLIENT_SECRET"
+MS365_STORAGE = "m365_storage"
+MS365_STORAGE_TOKEN = ".MS365-token-cache"
+
+PERM_USER_READ = "User.Read"
+PERM_SHARED = ".Shared"
+PERM_BASE_PERMISSIONS = [PERM_USER_READ]
+
+ERROR_INVALID_SHARED_MAILBOX = (
+    "Login email address '%s' should not be "
+    "entered as shared email address, config attribute removed."
+)
+ERROR_INVALID_TENANT = (
+    "Authorization url could not be created, check the tenant ID - %s"
+)
+ERROR_INVALID_URL = "Returned url could not be used to request a token - %s"
+SECRET_EXPIRED = (
+    "Client Secret expired for account: %s. "
+    "Create new Client Secret in Entra ID App Registration."
+)
+TOKEN_DELETED = (
+    "Token %s has been deleted as part of upgrade"
+    " - please re-configure to re-authenticate"
+)
+TOKEN_ERROR = "Token error for account: %s. Error - %s"
+TOKEN_ERROR_CORRUPT = (
+    "Token file corrupted for integration '%s', unique identifier '%s', "
+    "please delete token, re-configure and re-authenticate - %s"
+)
+TOKEN_ERROR_FILE = (
+    "Token file retrieval error, check log for errors from O365. "
+    "Ensure token has not expired and you are using secret value not secret id."
+)
+TOKEN_ERROR_LEGACY = (
+    "Token no longer valid for integration '%s', unique identifier '%s', "
+    "please delete token, re-configure and re-authenticate - %s"
+)
+TOKEN_ERROR_MISSING = "Could not locate token at %s"
+TOKEN_ERROR_PERMISSIONS = (
+    "Minimum required permissions: '%s'. Not available in token '%s' for account '%s'."
+)
+TOKEN_EXPIRED = (
+    "Token has expired for account: '%s'. " + "Please re-configure and re-authenticate."
+)
+
+
+TOKEN_FILENAME = "{0}{1}.token"  # nosec
+TOKEN_FILE_CORRUPTED = "corrupted"
+TOKEN_FILE_EXPIRED = "expired"
+TOKEN_FILE_MISSING = "missing"
+TOKEN_FILE_OUTDATED = "outdated"
+TOKEN_FILE_PERMISSIONS = "permissions"
+TOKEN_INVALID = "The token you are trying to load is not valid anymore"
+
+PERSONAL_ACCOUNT_TENANTID = "9188040d-6c67-4c5b-b112-36a304b66dad"
+
+
+class CountryOptions(StrEnum):
+    """National cloud selection."""
+
+    DEFAULT = "Default"
+    CN21V = "21Vianet (China)"
+    GCC_HIGH = "MS365 GCC"
+
+
+MSAL_AUTHORITY_BASE = "msal_authority_base"
+OAUTH_REDIRECT_URL = "auth_redirect_url"
+OAUTH_SCOPE_PREFIX = "oauth_scope_prefix"
+PERMISSION_PREFIX = "permission_prefix"
+PROTOCOL_URL = "protocol_url"
+
+COUNTRY_URLS = {
+    CountryOptions.CN21V: {
+        MSAL_AUTHORITY_BASE: "https://login.partner.microsoftonline.cn",
+        OAUTH_REDIRECT_URL: "https://login.partner.microsoftonline.cn/common/oauth2/nativeclient",
+        OAUTH_SCOPE_PREFIX: "https://microsoftgraph.chinacloudapi.cn/",
+        PERMISSION_PREFIX: "https://microsoftgraph.chinacloudapi.cn/",
+        PROTOCOL_URL: "https://microsoftgraph.chinacloudapi.cn/",
+    },
+    CountryOptions.GCC_HIGH: {
+        MSAL_AUTHORITY_BASE: "https://login.microsoftonline.us",
+        OAUTH_REDIRECT_URL: "https://login.microsoftonline.us/common/oauth2/nativeclient",
+        OAUTH_SCOPE_PREFIX: "https://graph.microsoft.us/",
+        PERMISSION_PREFIX: "https://graph.microsoft.us/",
+        PROTOCOL_URL: "https://graph.microsoft.us/",
+    },
+    CountryOptions.DEFAULT: {
+        OAUTH_REDIRECT_URL: "https://login.microsoftonline.com/common/oauth2/nativeclient",
+        PERMISSION_PREFIX: "https://graph.microsoft.com/",
+    },
+}

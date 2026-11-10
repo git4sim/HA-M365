@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Upstream MS365 documentation
+    url: https://rogerselwyn.github.io/MS365-HomeAssistant/
+    about: The service features are documented upstream; app registration and permissions are the same.

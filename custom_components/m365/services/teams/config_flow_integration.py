@@ -1,0 +1,95 @@
+"""Configuration flow for the MS365 platform."""
+
+import probatio
+
+from homeassistant import config_entries
+from homeassistant.config_entries import ConfigFlowResult
+import homeassistant.helpers.config_validation as cv
+
+from ...classes.config_entry import MS365ConfigEntry
+from ...const import CONF_ENTITY_NAME
+from .const_integration import (
+    CONF_ALTERNATE_EMAIL,
+    CONF_CHAT_ENABLE,
+    CONF_STATUS_ENABLE,
+    CONF_UPDATE_INTERVAL,
+    DEFAULT_UPDATE_INTERVAL,
+    EnableOptions,
+)
+
+INTEGRATION_CONFIG_VERSION = 2
+INRTEGRATION_CONFIG_MINOR_VERSION = 0
+
+
+def integration_reconfigure_schema(entry_data):
+    """Extend the schema with integration specific attributes."""
+    return {
+        probatio.Required(
+            CONF_CHAT_ENABLE, default=entry_data[CONF_CHAT_ENABLE]
+        ): probatio.In(EnableOptions),
+        probatio.Required(
+            CONF_STATUS_ENABLE, default=entry_data[CONF_STATUS_ENABLE]
+        ): probatio.In(EnableOptions),
+        probatio.Optional(
+            CONF_ALTERNATE_EMAIL,
+            description={"suggested_value": entry_data.get(CONF_ALTERNATE_EMAIL)},
+        ): cv.string,
+    }
+
+
+def integration_validate_schema(user_input):
+    """Validate the user input."""
+    if (
+        user_input.get(CONF_ALTERNATE_EMAIL)
+        and user_input.get(CONF_STATUS_ENABLE) != EnableOptions.READ
+    ):
+        return {CONF_STATUS_ENABLE: "status_enable_should_be_read"}
+    return {}
+
+
+class MS365OptionsFlowHandler(config_entries.OptionsFlow):
+    """Config flow options for MS365."""
+
+    def __init__(self, entry: MS365ConfigEntry) -> None:
+        """Initialize MS365 options flow."""
+
+    async def async_step_init(
+        self,
+        user_input=None,  # pylint: disable=unused-argument
+    ) -> ConfigFlowResult:
+        """Set up the option flow."""
+
+        return await self.async_step_user()
+
+    async def async_step_user(self, user_input=None) -> ConfigFlowResult:
+        """Handle a flow initialized by the user."""
+
+        if user_input:
+            return await self._async_tidy_up(user_input)
+
+        errors = {}
+
+        return self.async_show_form(
+            step_id="user",
+            description_placeholders={
+                CONF_ENTITY_NAME: self.config_entry.data[CONF_ENTITY_NAME]
+            },
+            data_schema=probatio.Schema(
+                {
+                    probatio.Required(
+                        CONF_UPDATE_INTERVAL,
+                        default=self.config_entry.options.get(
+                            CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
+                        ),
+                    ): probatio.All(
+                        probatio.Coerce(int), probatio.Range(min=1, max=60)
+                    ),
+                }
+            ),
+            errors=errors,
+            last_step=True,
+        )
+
+    async def _async_tidy_up(self, user_input):
+        # The update listener reloads the entry when the options change.
+        return self.async_create_entry(title="", data=user_input)

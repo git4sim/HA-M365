@@ -1,0 +1,214 @@
+"""Calendar coordinator processing."""
+
+from collections.abc import Iterable
+from datetime import datetime, timedelta
+import logging
+
+from requests.exceptions import (
+    ConnectionError as RequestConnectionError,
+    HTTPError,
+    RetryError,
+)
+
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import STATE_OK, STATE_PROBLEM, STATE_UNKNOWN
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.util import dt as dt_util
+from O365.calendar import Event  # pylint: disable=no-name-in-module)
+
+from .const_integration import (
+    CONF_ADVANCED_OPTIONS,
+    CONF_DAYS_BACKWARD,
+    CONF_DAYS_FORWARD,
+    CONF_HOURS_BACKWARD_TO_GET,
+    CONF_HOURS_FORWARD_TO_GET,
+    CONF_UPDATE_INTERVAL,
+    DEFAULT_DAYS_BACKWARD,
+    DEFAULT_DAYS_FORWARD,
+    DEFAULT_UPDATE_INTERVAL,
+)
+from .sync.sync import MS365CalendarEventSyncManager
+from .sync.timeline import MS365Timeline
+from .utils_integration import get_start_date
+
+_LOGGER = logging.getLogger(__name__)
+# Maximum number of upcoming events to consider for state changes between
+# coordinator updates.
+# MAX_UPCOMING_EVENTS = 20
+
+
+class MS365CalendarSyncCoordinator(DataUpdateCoordinator):
+    """Coordinator for calendar RPC calls that use an efficient sync."""
+
+    config_entry: ConfigEntry
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        sync: MS365CalendarEventSyncManager,
+        name: str,
+        entity,
+    ) -> None:
+        """Create the CalendarSyncUpdateCoordinator."""
+        update_interval = entry.options.get(CONF_ADVANCED_OPTIONS, {}).get(
+            CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
+        )
+        super().__init__(
+            hass,
+            _LOGGER,
+            config_entry=entry,
+            name=name,
+            update_interval=timedelta(seconds=update_interval),
+        )
+        days_backward = entry.options.get(CONF_ADVANCED_OPTIONS, {}).get(
+            CONF_DAYS_BACKWARD, DEFAULT_DAYS_BACKWARD
+        )
+        days_forward = entry.options.get(CONF_ADVANCED_OPTIONS, {}).get(
+            CONF_DAYS_FORWARD, DEFAULT_DAYS_FORWARD
+        )
+        self.sync = sync
+        # self._upcoming_timeline: MS365Timeline | None = None
+        # self.event = None
+        self._sync_event_min_time = timedelta(
+            days=(min(entity.get(CONF_HOURS_BACKWARD_TO_GET) / 24, days_backward))
+        )
+        self._sync_event_max_time = timedelta(
+            days=(max(entity.get(CONF_HOURS_FORWARD_TO_GET) / 24, days_forward))
+        )
+        self._last_sync_min = None
+        self._last_sync_max = None
+        self.entity = entity
+        self._error = False
+        self.sync_state = STATE_UNKNOWN
+
+    async def _async_update_data(self) -> MS365Timeline:
+        """Fetch data from API endpoint."""
+        _LOGGER.debug("Started fetching %s data", self.name)
+
+        self._last_sync_min = dt_util.now() + self._sync_event_min_time
+        self._last_sync_max = dt_util.now() + self._sync_event_max_time
+        try:
+            await self.sync.run(self._last_sync_min, self._last_sync_max)
+            self.sync_state = STATE_OK
+        except (HTTPError, RetryError, RequestConnectionError) as err:
+            _LOGGER.error(
+                "Error syncing calendar events from MS Graph, fetching from cache: %s",
+                err,
+            )
+            self.sync_state = STATE_PROBLEM
+
+        return await self.sync.store_service.async_get_timeline(
+            dt_util.get_default_time_zone()
+        )
+
+        # self._upcoming_timeline = timeline
+        # return timeline
+
+    async def async_get_events(
+        self, start_date: datetime, end_date: datetime
+    ) -> Iterable[Event]:
+        """Get all events in a specific time frame."""
+        if not self.data:
+            raise HomeAssistantError(
+                "Unable to get events: Sync from server has not completed"
+            )
+
+        # If the request is for outside of the synced data, manually request it now,
+        # will not cache it though
+        if start_date < self._last_sync_min or end_date > self._last_sync_max:
+            _LOGGER.debug(
+                "Fetch events from api - %s - %s - %s", self.name, start_date, end_date
+            )
+            try:
+                return await self.sync.async_list_events(start_date, end_date)
+            except (HTTPError, RetryError, RequestConnectionError) as err:
+                self._log_error(
+                    "Error getting calendar event range "
+                    "from MS Graph, fetching from cache.",
+                    err,
+                )
+        _LOGGER.debug(
+            "Fetch events from cache - %s - %s - %s",
+            self.name,
+            start_date,
+            end_date,
+        )
+
+        return self.data.overlapping(
+            start_date,
+            end_date,
+        )
+
+    def get_current_event(self):
+        """Get the current event."""
+
+        # No data yet when the first refresh failed with an error that is not caught
+        if self.data is None:
+            _LOGGER.debug(
+                "No current event found for %s",
+                self.sync.calendar_id,
+            )
+            return None
+
+        # Get events that are current now
+        today = dt_util.utcnow()
+
+        current_events = self.data.overlapping(
+            today,
+            today,
+        )
+
+        all_day_event = None
+        for event in current_events:
+            if event.is_all_day:
+                if not all_day_event:
+                    all_day_event = event
+                continue
+            if self.is_started(event):
+                return event
+
+        if all_day_event:
+            return all_day_event
+
+        # If no current events, then find unfinished event within next day
+        events = self.data.overlapping(
+            today,
+            today + timedelta(days=1),
+        )
+        for event in events:
+            if event.is_all_day:
+                if not all_day_event:
+                    all_day_event = event
+                continue
+            return event
+
+        return all_day_event
+
+    @staticmethod
+    def is_started(vevent):
+        """Is it over."""
+        return dt_util.utcnow() >= MS365CalendarSyncCoordinator.to_datetime(
+            get_start_date(vevent)
+        )
+
+    @staticmethod
+    def to_datetime(obj):
+        """To datetime."""
+        if not isinstance(obj, datetime):
+            date_obj = dt_util.start_of_local_day(
+                dt_util.dt.datetime.combine(obj, dt_util.dt.time.min)
+            )  # pragma: no cover
+        else:
+            date_obj = obj
+
+        return dt_util.as_utc(date_obj)
+
+    def _log_error(self, error, err):
+        if not self._error:
+            _LOGGER.warning("%s - %s", error, err)
+            self._error = True
+        else:
+            _LOGGER.debug("Repeat error - %s - %s", error, err)

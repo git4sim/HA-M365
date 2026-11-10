@@ -1,0 +1,22 @@
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#Collection(microsoft.graph.todoTaskList)",
+    "@odata.nextLink": "https://graph.microsoft.com/v1.0/me/todo/lists/delta?$skiptoken=longskiptoken",
+    "value": [
+        {
+            "@odata.etag": "etag1",
+            "displayName": "ToDo List 1",
+            "isOwner": true,
+            "isShared": false,
+            "wellknownListName": "defaultList",
+            "id": "todolist1"
+        },
+        {
+            "@odata.etag": "etag2",
+            "displayName": "ToDo List 2",
+            "isOwner": true,
+            "isShared": true,
+            "wellknownListName": "none",
+            "id": "todolist2"
+        }
+    ]
+}

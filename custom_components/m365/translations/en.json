@@ -1,0 +1,770 @@
+{
+  "config": {
+    "abort": {
+      "reconfigure_successful": "Re-configuration was successful",
+      "reauth_successful": "Re-authentication was successful"
+    },
+    "error": {
+      "already_configured": "This account name has already been used. Use re-configure.",
+      "environment_variable_empty": "The specified variable is empty in the environment",
+      "environment_variable_invalid": "The specified variable does not exist in the environment",
+      "error_authenticating": "Error authenticating, token invalid, check log for errors",
+      "invalid_url": "Error, the originating url does not seem to be a valid microsoft redirect",
+      "invalid_tenant": "Error, the sign-in details for the tenant could not be retrieved, check the Tenant ID in the advanced API options",
+      "permissions": "Minimum permissions not granted for account: {entity_name}",
+      "corrupted": "Token file is corrupted after successful authentication, check log for file system errors",
+      "missing": "Token file is missing after successful authentication, check log for file system errors",
+      "token_file_error": "Token file retrieval error, check log for errors from O365. Ensure token has not expired and you are using secret value not secret id.",
+      "cannot_have_basic_shared": "Basic Calendar cannot be enabled when configuring access to a shared calendar.",
+      "cannot_have_basic_update": "Basic Calendar cannot be enabled when enable update is enabled.",
+      "cannot_have_groups_shared": "Groups cannot be enabled when configuring access to a shared calendar.",
+      "status_enable_should_be_read": "To monitor status for alternate email, Status sensor must be set to Read.",
+      "no_services": "Select at least one service"
+    },
+    "step": {
+      "user": {
+        "title": "Microsoft 365 account",
+        "description": "Enter the credentials of a previously created Entra ID App Registration and choose the services to use.",
+        "data": {
+          "entity_name": "Uniquely identifying name for the account",
+          "client_id": "Client ID",
+          "environment_secret": "Use client secret from environment (default False)",
+          "client_secret": "Client Secret",
+          "client_sec_variable": "Client Secret environment variable",
+          "alt_auth_method": "Use alternate (more complex) authentication",
+          "services": "Microsoft 365 services to enable",
+          "shared_mailbox": "Email address/ID of shared mailbox (optional)"
+        },
+        "data_description": {
+          "services": "Each service only requests the Graph permissions it needs. Teams requires a work or school account.",
+          "shared_mailbox": "Applies to Calendar, Mail and Contacts. Do not put your own email address in this box."
+        },
+        "sections": {
+          "api_options": {
+            "name": "Advanced API options",
+            "description": "Advanced options for country specific needs",
+            "data": {
+              "country": "API Country",
+              "tenant_id": "Tenant ID"
+            },
+            "data_description": {
+              "country": "Only use if you know you need it since your credentials will be sent to the selected api/country.",
+              "tenant_id": "Azure tenant ID for single-tenant app registrations. Leave blank for multi-tenant apps."
+            }
+          }
+        }
+      },
+      "services": {
+        "title": "Service settings - {entity_name}",
+        "description": "Configure the selected services.",
+        "sections": {
+          "calendar": {
+            "name": "Calendar",
+            "data": {
+              "enable_update": "Enable update services",
+              "basic_calendar": "Enable read only basic calendar",
+              "groups": "Enable support for group calendars"
+            }
+          },
+          "todo": {
+            "name": "To Do",
+            "data": {
+              "enable_update": "Enable update services"
+            }
+          },
+          "mail": {
+            "name": "Mail",
+            "data": {
+              "enable_update": "Enable update services (send mail, notify)",
+              "enable_autoreply": "Enable management of autoreply"
+            }
+          },
+          "teams": {
+            "name": "Teams",
+            "data": {
+              "chat_enable": "Chat sensor",
+              "status_enable": "Status sensor",
+              "alternate_email": "Email address to monitor status for"
+            }
+          }
+        }
+      },
+      "request_default": {
+        "title": "Authorization Required - {entity_name}",
+        "description": "Complete the configuration by clicking on the link and copying the returned url into this field afterwards and submit\n\n[Link Microsoft 365 account]({auth_url}){failed_permissions}",
+        "data": {
+          "url": "Returned URL"
+        }
+      },
+      "request_alt": {
+        "title": "Authorization Required - {entity_name}",
+        "description": "To link your Microsoft 365 account, click the link, login, and authorize:\n\n[Link Microsoft 365 account]({auth_url}){failed_permissions}",
+        "submit": "I authorized successfully"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "description": "Choose the service to configure",
+        "menu_options": {
+          "calendar": "Calendar",
+          "todo": "To Do",
+          "teams": "Teams"
+        }
+      },
+      "calendar_user": {
+        "data": {
+          "track_new_calendar": "Enable new calendars",
+          "calendar_list": "Enabled calendars"
+        },
+        "description": "Setup options for {entity_name}",
+        "sections": {
+          "advanced_options": {
+            "name": "Advanced options",
+            "description": "Advanced syncronisation configuration",
+            "data": {
+              "update_interval": "Update interval in seconds",
+              "days_backward": "Number of days backwards",
+              "days_forward": "Number of days forward"
+            },
+            "data_description": {
+              "days_backward": "Days backward to sync to store",
+              "days_forward": "Days forward to sync to store"
+            }
+          }
+        }
+      },
+      "calendar_calendar_config": {
+        "data": {
+          "name": "Calendar friendly name",
+          "end_offset": "Hours to offset the end time",
+          "start_offset": "Hours to offset the start time",
+          "max_results": "Max number of events to retrieve",
+          "sensitivity_exclude": "Sensitivities to exclude from retrieval"
+        },
+        "description": "Setup options for {entity_name} - calendar device_id {device_id}"
+      },
+      "todo_user": {
+        "data": {
+          "max_todos": "Maximum To Dos to retrieve",
+          "track_new": "Enable new To Do lists",
+          "todo_list": "Enabled To Do lists"
+        },
+        "description": "Setup options for {entity_name}"
+      },
+      "todo_todo_config": {
+        "data": {
+          "due_end_offset": "Hours forward to offset the due time for retrieval",
+          "due_start_offset": "Hours backward to offset the due time for retrieval",
+          "show_completed": "Show completed items"
+        },
+        "description": "Setup options for {entity_name} - To Do list {name}"
+      },
+      "teams_user": {
+        "data": {
+          "update_interval": "Update interval in seconds"
+        },
+        "description": "Setup options for {entity_name}"
+      }
+    },
+    "abort": {
+      "no_calendars": "No calendars have been found for this account yet. Make sure the integration has set up successfully, then try again.",
+      "no_options": "No options to modify for the enabled services"
+    }
+  },
+  "config_subentries": {
+    "mail": {
+      "entry_type": "Mail",
+      "initiate_flow": {
+        "user": "Add mail folder",
+        "reconfigure": "Change mail folder"
+      },
+      "step": {
+        "user": {
+          "title": "Add mail folder",
+          "description": "Add folder for {entity_name}",
+          "data": {
+            "entity_name": "Name to identify this folder",
+            "folder": "Mail folder to monitor",
+            "max_items": "Max number of items",
+            "is_unread": "Unread items",
+            "has_attachment": "Has attachments",
+            "importance": "Importance Level",
+            "subject_contains": "Subject contains",
+            "subject_is": "Subject is",
+            "body_contains": "Body contains",
+            "download_attachments": "Show attachment names",
+            "save_attachments": "Save attachments",
+            "html_body": "Output HTML body",
+            "show_body": "Show body on entity",
+            "from": "Only retrieve emails from this email address"
+          }
+        },
+        "reconfigure": {
+          "title": "Change mail folder",
+          "description": "Change {entity_name} folder",
+          "data": {
+            "folder": "Mail folder to monitor",
+            "max_items": "Max number of items",
+            "is_unread": "Unread items",
+            "has_attachment": "Has attachments",
+            "importance": "Importance Level",
+            "subject_contains": "Subject contains",
+            "subject_is": "Subject is",
+            "body_contains": "Body contains",
+            "download_attachments": "Show attachment names",
+            "save_attachments": "Save attachments",
+            "html_body": "Output HTML body",
+            "show_body": "Show body on entity",
+            "from": "Only retrieve emails from this email address"
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "services": {
+      "options": {
+        "calendar": "Calendar",
+        "todo": "To Do",
+        "mail": "Mail",
+        "teams": "Teams",
+        "contacts": "Contacts"
+      }
+    },
+    "status": {
+      "options": {
+        "needs_action": "Not completed",
+        "completed": "Completed"
+      }
+    }
+  },
+  "issues": {
+    "corrupted": {
+      "title": "Re-authentication required - {domain} - {entity_name}",
+      "description": "The token file is corrupted. Please [Reconfigure]({url}) the integration and re-authenticate to re-create the token file."
+    },
+    "environment_variable_empty": {
+      "title": "The specified client secret environment variable - {client_sec_variable} - is empty",
+      "description": "Please [Reconfigure]({url}) the integration with a valid environment variable."
+    },
+    "environment_variable_invalid": {
+      "title": "The specified client secret environment variable - {client_sec_variable} - does not exist",
+      "description": "Please [Reconfigure]({url}) the integration with a valid environment variable."
+    },
+    "expired": {
+      "title": "Re-authentication required - {domain} - {entity_name}",
+      "description": "The token has expired. Please [Reconfigure]({url}) the integration and re-authenticate to re-create the token file."
+    },
+    "missing": {
+      "title": "Re-authentication required - {domain} - {entity_name}",
+      "description": "The token file is missing. Please [Reconfigure]({url}) the integration and re-authenticate to re-create the token file."
+    },
+    "outdated": {
+      "title": "Re-authentication required - {domain} - {entity_name}",
+      "description": "The token is outdated. Please delete the token, then [Reconfigure]({url}) the integration and re-authenticate to re-create the token file."
+    },
+    "permissions": {
+      "title": "Re-authentication required - {domain} - {entity_name}",
+      "description": "Permissions missing. Please [Reconfigure]({url}) the integration and re-authenticate to re-create the token file."
+    }
+  },
+  "exceptions": {
+    "corrupted": {
+      "message": "The token file is corrupted. Please reconfigure the integration and re-authenticate to re-create the token file."
+    },
+    "environment_variable_empty": {
+      "message": "The specified client secret environment variable - {client_sec_variable} - is empty. Please reconfigure the integration with a valid environment variable."
+    },
+    "environment_variable_invalid": {
+      "message": "The specified client secret environment variable - {client_sec_variable} - does not exist. Please reconfigure the integration with a valid environment variable."
+    },
+    "expired": {
+      "message": "The token has expired. Please reconfigure the integration and re-authenticate to re-create the token file."
+    },
+    "missing": {
+      "message": "The token file is missing. Please reconfigure the integration and re-authenticate to re-create the token file."
+    },
+    "outdated": {
+      "message": "The token is outdated. Please delete the token, then reconfigure the integration and re-authenticate to re-create the token file."
+    },
+    "permissions": {
+      "message": "Permissions missing. Please reconfigure the integration and re-authenticate to re-create the token file."
+    },
+    "calendar_not_editable": {
+      "message": "Calendar - {name} - is not editable"
+    },
+    "ms365_group_calendar_error": {
+      "message": "O365 Python does not have capability to update/respond to group calendar events: {entity_id}"
+    },
+    "not_authorised": {
+      "message": "{required_permission}"
+    },
+    "cannot_connect": {
+      "message": "Error syncing calendar events from MS Graph."
+    },
+    "end_before_start": {
+      "message": "The end date time must be after the start date time"
+    },
+    "todo_completed": {
+      "message": "To Do is already complete"
+    },
+    "todo_not_completed": {
+      "message": "To Do is already incomplete"
+    },
+    "todo_not_found_get": {
+      "message": "To Do was not found"
+    },
+    "todo_not_found_delete": {
+      "message": "To Do was not found when deleting, please check to see if it has been deleted."
+    },
+    "todo_not_retrieved": {
+      "message": "To Do has not been retrieved successfully, Action unsuccessful"
+    },
+    "not_possible": {
+      "message": "Not possible to update alternate user status: {email}"
+    },
+    "contacts_entry_required": {
+      "message": "Several Microsoft 365 accounts have Contacts enabled - select the account (config_entry_id) to search."
+    },
+    "file_not_allowed": {
+      "message": "File {filepath} is not in a directory allowed by allowlist_external_dirs and cannot be sent"
+    }
+  },
+  "services": {
+    "respond_calendar_event": {
+      "name": "Respond to an event",
+      "description": "Respond to calendar event/invite",
+      "fields": {
+        "event_id": {
+          "description": "ID for the event, can be found as an attribute on your calendar entity's events",
+          "name": "Event ID"
+        },
+        "response": {
+          "description": "The response to the invite [Accept, Tentative, Decline]",
+          "name": "Response"
+        },
+        "message": {
+          "description": "The response message to the invite (Optional)",
+          "name": "Message"
+        },
+        "send_response": {
+          "description": "Send the response to the organizer (Optional)",
+          "name": "Send Response"
+        }
+      }
+    },
+    "create_calendar_event": {
+      "name": "Create a new event",
+      "description": "Create new calendar event",
+      "fields": {
+        "subject": {
+          "description": "The subject of the created event",
+          "name": "Subject"
+        },
+        "start": {
+          "description": "The start time of the event",
+          "name": "Start"
+        },
+        "end": {
+          "description": "The end time of the event",
+          "name": "End"
+        },
+        "body": {
+          "description": "The body text for the event (optional)",
+          "name": "Body"
+        },
+        "location": {
+          "description": "The location for the event (optional)",
+          "name": "Location"
+        },
+        "categories": {
+          "description": "List of categories for the event (optional)",
+          "name": "Categories"
+        },
+        "sensitivity": {
+          "description": "The sensitivity for the event (optional) [Normal, Personal, Private, Confidential]",
+          "name": "Sensitivity"
+        },
+        "show_as": {
+          "description": "Show event as (optional) [Free, Tentative, Busy, Oof, WorkingElsewhere, Unknown]",
+          "name": "Show_as"
+        },
+        "is_all_day": {
+          "description": "Set whether event is all day (optional)",
+          "name": "All Day"
+        },
+        "attendees": {
+          "description": "List of attendees formatted as email: example@example.com type: Required, Optional, or Resource (optional)",
+          "name": "Attendees"
+        },
+        "is_reminder_on": {
+          "description": "Set reminder on or off",
+          "name": "Reminder On"
+        },
+        "remind_before_minutes": {
+          "description": "Minutes before event to set reminder",
+          "name": "Remind before Minutes"
+        }
+      }
+    },
+    "modify_calendar_event": {
+      "name": "Modify an event",
+      "description": "Modify existing calendar event, all properties except event_id are optional",
+      "fields": {
+        "event_id": {
+          "description": "ID for the event, can be found as an attribute on your calendar entity's events",
+          "name": "Event ID"
+        },
+        "subject": {
+          "description": "The subject of the event",
+          "name": "Subject"
+        },
+        "start": {
+          "description": "The start time of the event",
+          "name": "Start"
+        },
+        "end": {
+          "description": "The end time of the event",
+          "name": "End"
+        },
+        "body": {
+          "description": "The body text for the event",
+          "name": "Body"
+        },
+        "location": {
+          "description": "The location for the event",
+          "name": "Location"
+        },
+        "categories": {
+          "description": "List of categories for the event",
+          "name": "Categories"
+        },
+        "sensitivity": {
+          "description": "The sensitivity for the event [Normal, Personal, Private, Confidential]",
+          "name": "Sensitivity"
+        },
+        "show_as": {
+          "description": "Show event as [Free, Tentative, Busy, Oof, WorkingElsewhere, Unknown]",
+          "name": "Show As"
+        },
+        "is_all_day": {
+          "description": "Set whether event is all day",
+          "name": "All Day"
+        },
+        "attendees": {
+          "description": "List of attendees formatted as email: example@example.com type: Required, Optional, or Resource",
+          "name": "Attendees"
+        },
+        "is_reminder_on": {
+          "description": "Set reminder on or off",
+          "name": "Reminder On"
+        },
+        "remind_before_minutes": {
+          "description": "Minutes before event to set reminder",
+          "name": "Remind before Minutes"
+        }
+      }
+    },
+    "remove_calendar_event": {
+      "name": "Delete an event",
+      "description": "Delete calendar event",
+      "fields": {
+        "event_id": {
+          "description": "ID for the event, can be found as an attribute on your calendar entity's events",
+          "name": "Event ID"
+        }
+      }
+    },
+    "get_calendar_events": {
+      "name": "Get events",
+      "description": "Get the events in a time range with their full MS365 detail, including attendees and organizer",
+      "fields": {
+        "start_date_time": {
+          "name": "Start date time",
+          "description": "Return events that end after this time"
+        },
+        "end_date_time": {
+          "name": "End date time",
+          "description": "Return events that start before this time"
+        }
+      }
+    },
+    "new_todo": {
+      "name": "Create a To Do",
+      "description": "Create a To Do",
+      "fields": {
+        "subject": {
+          "description": "The subject of the To Do",
+          "name": "Subject"
+        },
+        "description": {
+          "description": "Description of the To Do",
+          "name": "Description"
+        },
+        "due": {
+          "description": "When the To Do is due by",
+          "name": "Due"
+        },
+        "reminder": {
+          "description": "When a reminder is needed",
+          "name": "Reminder"
+        }
+      }
+    },
+    "update_todo": {
+      "name": "Update a To Do",
+      "description": "Update a To Do",
+      "fields": {
+        "todo_id": {
+          "description": "ID for the To Do, can be found as an attribute on your todo",
+          "name": "To Do ID"
+        },
+        "subject": {
+          "description": "The subject of the To Do",
+          "name": "Subject"
+        },
+        "description": {
+          "description": "Description of the To Do",
+          "name": "Description"
+        },
+        "due": {
+          "description": "When the To Do is due by",
+          "name": "Due"
+        },
+        "remove_due": {
+          "description": "Remove Due",
+          "name": "Remove Due"
+        },
+        "reminder": {
+          "description": "When a reminder is needed",
+          "name": "Reminder"
+        },
+        "remove_reminder": {
+          "description": "Remove Reminder",
+          "name": "Remove Reminder"
+        }
+      }
+    },
+    "delete_todo": {
+      "name": "Delete a To Do",
+      "description": "Delete a To Do",
+      "fields": {
+        "todo_id": {
+          "description": "ID for the To Do, can be found as an attribute on your todo",
+          "name": "To Do ID"
+        }
+      }
+    },
+    "complete_todo": {
+      "name": "Complete a To Do",
+      "description": "Complete a To Do",
+      "fields": {
+        "todo_id": {
+          "description": "ID for the To Do, can be found as an attribute on your todo",
+          "name": "To Do ID"
+        },
+        "completed": {
+          "description": "Set whether To Do is completed or not",
+          "name": "Completed"
+        }
+      }
+    },
+    "new_todo_checklist_item": {
+      "name": "Create a To Do Checklist Item",
+      "description": "Create a To Do Checklist Item",
+      "fields": {
+        "todo_id": {
+          "description": "ID for the To Do, can be found as an attribute on your todo",
+          "name": "To Do ID"
+        },
+        "name": {
+          "description": "The name of the Checklist Item",
+          "name": "Name"
+        }
+      }
+    },
+    "update_todo_checklist_item": {
+      "name": "Update a To Do Checklist Item",
+      "description": "Update a To Do Checklist Item",
+      "fields": {
+        "todo_id": {
+          "description": "ID for the To Do, can be found as an attribute on your todo",
+          "name": "To Do ID"
+        },
+        "checklist_item_id": {
+          "description": "ID for the Checklist Item, can be found as an attribute on your checklist_items",
+          "name": "To Do Checklist Item ID"
+        },
+        "status": {
+          "name": "Set status",
+          "description": "A status or confirmation of the checklist_item."
+        }
+      }
+    },
+    "delete_todo_checklist_item": {
+      "name": "Delete a To Do Checklist Item",
+      "description": "Delete a To Do Checklist Item",
+      "fields": {
+        "todo_id": {
+          "description": "ID for the To Do, can be found as an attribute on your todo",
+          "name": "To Do ID"
+        },
+        "checklist_item_id": {
+          "description": "ID for the Checklist Item, can be found as an attribute on your checklist_items",
+          "name": "To Do Checklist Item ID"
+        }
+      }
+    },
+    "auto_reply_enable": {
+      "name": "Auto reply enable",
+      "description": "Schedules auto reply",
+      "fields": {
+        "external_reply": {
+          "description": "The message to be send to external emails (or to all emails, if you don't have an organisation email)",
+          "name": "External reply"
+        },
+        "internal_reply": {
+          "description": "The message to be send to internal emails",
+          "name": "Internal Reply"
+        },
+        "start": {
+          "description": "The start time of the schedule",
+          "name": "Start date & time"
+        },
+        "end": {
+          "description": "The end time of the schedule",
+          "name": "End date & time"
+        },
+        "external_audience": {
+          "description": "The set of audience external to the signed-in user's organization who will receive the ExternalReplyMessage. The possible values are: none, contactsOnly, all.",
+          "name": "External Audience"
+        }
+      }
+    },
+    "auto_reply_disable": {
+      "name": "Auto reply disable",
+      "description": "Disables auto reply",
+      "fields": {}
+    },
+    "mail_send": {
+      "name": "Mail Send",
+      "description": "Sends a mail",
+      "fields": {
+        "subject": {
+          "description": "The subject of the email",
+          "name": "Subject"
+        },
+        "message": {
+          "description": "The body of the email to send",
+          "name": "Message"
+        },
+        "to": {
+          "description": "Who to send the email to (defaults to logged in user)",
+          "name": "To"
+        },
+        "from": {
+          "description": "Who to send the email from (defaults to logged in user)",
+          "name": "From"
+        },
+        "importance": {
+          "description": "Low, Medium or High",
+          "name": "Importance"
+        },
+        "message_is_html": {
+          "description": "Is the message formatted as HTML",
+          "name": "Message is HTML"
+        },
+        "photos": {
+          "description": "File paths or URLs of pictures to embed into the email body",
+          "name": "Photos"
+        },
+        "attachments": {
+          "description": "File paths to attach to email",
+          "name": "Attachments"
+        },
+        "zip_attachments": {
+          "description": "Zip files from attachments into a zip file before sending",
+          "name": "ZIP attachments"
+        },
+        "zip_name": {
+          "description": "Name of the generated zip file",
+          "name": "ZIP file name"
+        }
+      }
+    },
+    "send_chat_message": {
+      "name": "Send chat message",
+      "description": "Send message to a specified chat",
+      "fields": {
+        "chat_id": {
+          "description": "ID for chat, can be found as an attribute on your chat entity",
+          "name": "Chat ID"
+        },
+        "message": {
+          "description": "Message to send to the chats",
+          "name": "Message"
+        },
+        "content_type": {
+          "description": "The type of content to send, html if you are sending a HTML message or text for plain text",
+          "name": "Content Type"
+        }
+      }
+    },
+    "update_user_status": {
+      "name": "Update user Teams status",
+      "description": "Update the user's Teams status",
+      "fields": {
+        "availability": {
+          "description": "The base presence information",
+          "name": "Availability"
+        },
+        "activity": {
+          "description": "The supplemental information to availability",
+          "name": "Activity"
+        },
+        "expiration_duration": {
+          "description": "The expiration of the app presence session. The value is represented in ISO 8601 format for durations",
+          "name": "Expiration Duration"
+        }
+      }
+    },
+    "update_user_preferred_status": {
+      "name": "Update user preferred Teams status",
+      "description": "Update the user's preferred Teams status",
+      "fields": {
+        "availability": {
+          "description": "The base presence information",
+          "name": "Availability"
+        },
+        "expiration_duration": {
+          "description": "The expiration of the app presence session. The value is represented in ISO 8601 format for durations",
+          "name": "Expiration Duration"
+        }
+      }
+    },
+    "contacts_search": {
+      "name": "Contacts Search",
+      "description": "Search for contacts",
+      "fields": {
+        "given_name": {
+          "name": "Given Name",
+          "description": "Search for contact which `contains` Given Name"
+        },
+        "surname": {
+          "name": "Surname",
+          "description": "Search for contact which `contains` Surname"
+        },
+        "email": {
+          "name": "Email Address",
+          "description": "Search for contact which has Email Address"
+        },
+        "config_entry_id": {
+          "name": "Account",
+          "description": "Microsoft 365 account to search. Required when more than one account has Contacts enabled."
+        }
+      }
+    }
+  }
+}

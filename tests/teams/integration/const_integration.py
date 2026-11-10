@@ -1,0 +1,61 @@
+# pylint: disable=unused-import
+"""Constants for mail integration."""
+
+from enum import Enum
+
+from custom_components.m365.config_flow import MS365ConfigFlow  # noqa: F401
+from custom_components.m365.const import AUTH_CALLBACK_PATH_ALT, COUNTRY_URLS, OAUTH_REDIRECT_URL, CountryOptions  # noqa: F401
+from custom_components.m365.services.teams.const_integration import DOMAIN  # noqa: F401
+
+AUTH_CALLBACK_PATH_DEFAULT = COUNTRY_URLS[CountryOptions.DEFAULT][OAUTH_REDIRECT_URL]
+BASE_CONFIG_ENTRY_INTEGRATION = {
+    "chat_enable": "Read",
+    "status_enable": "Read",
+}
+BASE_TOKEN_PERMS = "Chat.Read Presence.Read"
+BASE_MISSING_PERMS = "Chat.Read, Presence.Read"
+UPDATE_TOKEN_PERMS = "Chat.ReadWrite Presence.ReadWrite"
+UPDATE_OPTIONS = {"chat_enable": "Update", "status_enable": "Update"}
+
+
+DIAGNOSTIC_GRANTED_PERMISSIONS = [
+    "Chat.Read",
+    "Presence.Read",
+    "User.Read",
+    "email",
+    "openid",
+    "profile",
+]
+DIAGNOSTIC_REQUESTED_PERMISSIONS = [
+    "User.Read",
+    "Chat.Read",
+    "Presence.Read",
+]
+
+FULL_INIT_ENTITY_NO = 2
+
+
+class URL(Enum):
+    """List of URLs."""
+
+    OPENID = "https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration"
+    ME = "https://graph.microsoft.com/v1.0/me"
+    CHATS = "https://graph.microsoft.com/v1.0/me/chats"
+    CHAT1_MESSAGES = "https://graph.microsoft.com/v1.0//chats/chat1/messages"
+    CHAT1_MEMBERS = "https://graph.microsoft.com/v1.0//chats/chat1/members"
+    CHAT2_MESSAGES = "https://graph.microsoft.com/v1.0//chats/chat2/messages"
+    CHAT2_MEMBERS = "https://graph.microsoft.com/v1.0//chats/chat2/members"
+    PRESENCE = "https://graph.microsoft.com/v1.0/me/presence"
+    ALTERNATE_PRESENCE = "https://graph.microsoft.com/v1.0/users/fake_user_id2/presence"
+    ALTERNATE_USER = "https://graph.microsoft.com/v1.0/users/jane@nomail.com"
+
+
+class CN21VURL(Enum):
+    """List of URLs."""
+
+    DISCOVERY = "https://login.microsoftonline.com/common/discovery/instance"
+    OPENID = "https://login.partner.microsoftonline.cn/common/v2.0/.well-known/openid-configuration"
+    ME = "https://microsoftgraph.chinacloudapi.cn/v1.0/me"
+    CHATS = "https://microsoftgraph.chinacloudapi.cn/v1.0/me/chats"
+    CHAT1_MESSAGES = "https://microsoftgraph.chinacloudapi.cn/v1.0//chats/chat1/messages"
+    PRESENCE = "https://microsoftgraph.chinacloudapi.cn/v1.0/me/presence"

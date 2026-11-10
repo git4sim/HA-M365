@@ -1,0 +1,55 @@
+# pylint: disable=unused-argument
+"""Test setup process."""
+
+from unittest.mock import patch
+
+from custom_components.m365.services.calendar.const_integration import (
+    CONF_ADVANCED_OPTIONS,
+    CONF_CALENDAR_LIST,
+    CONF_DAYS_BACKWARD,
+    CONF_DAYS_FORWARD,
+    CONF_HOURS_BACKWARD_TO_GET,
+    CONF_HOURS_FORWARD_TO_GET,
+    CONF_TRACK_NEW_CALENDAR,
+    CONF_UPDATE_INTERVAL,
+    DEFAULT_DAYS_BACKWARD,
+    DEFAULT_DAYS_FORWARD,
+    DEFAULT_UPDATE_INTERVAL,
+)
+from homeassistant.const import CONF_NAME
+from homeassistant.core import HomeAssistant
+
+from ..helpers.mock_config_entry import MS365MockConfigEntry
+from .const_integration import UPDATE_CALENDAR_LIST
+
+
+async def test_reload(
+    hass: HomeAssistant,
+    setup_base_integration,
+    base_config_entry: MS365MockConfigEntry,
+) -> None:
+    """Test for reload."""
+
+    result = await hass.config_entries.options.async_init(base_config_entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_TRACK_NEW_CALENDAR: True,
+            CONF_CALENDAR_LIST: UPDATE_CALENDAR_LIST,
+            CONF_ADVANCED_OPTIONS: {
+                CONF_UPDATE_INTERVAL: DEFAULT_UPDATE_INTERVAL,
+                CONF_DAYS_BACKWARD: DEFAULT_DAYS_BACKWARD,
+                CONF_DAYS_FORWARD: DEFAULT_DAYS_FORWARD,
+            },
+        },
+    )
+    with patch("homeassistant.config_entries.ConfigEntries.async_reload") as mock_async_reload:
+        await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            user_input={
+                CONF_NAME: "Calendar1",
+                CONF_HOURS_FORWARD_TO_GET: 24,
+                CONF_HOURS_BACKWARD_TO_GET: 0,
+            },
+        )
+    assert mock_async_reload.called

@@ -1,0 +1,293 @@
+"""Configuration flow for the MS365 platform."""
+
+from copy import deepcopy
+
+import probatio
+
+from homeassistant import config_entries
+from homeassistant.config_entries import ConfigEntryState, ConfigFlowResult
+from homeassistant.const import CONF_NAME
+from homeassistant.data_entry_flow import section
+import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.selector import BooleanSelector
+from O365.calendar import EventSensitivity  # pylint: disable=no-name-in-module
+
+from ...classes.config_entry import MS365ConfigEntry
+from ...const import CONF_ENABLE_UPDATE, CONF_ENTITY_NAME, CONF_SHARED_MAILBOX
+from ...helpers.utils import add_attribute_to_item
+from .const_integration import (
+    CONF_ADVANCED_OPTIONS,
+    CONF_BASIC_CALENDAR,
+    CONF_CAL_ID,
+    CONF_CALENDAR_LIST,
+    CONF_DAYS_BACKWARD,
+    CONF_DAYS_FORWARD,
+    CONF_DEVICE_ID,
+    CONF_ENTITIES,
+    CONF_GROUPS,
+    CONF_HOURS_BACKWARD_TO_GET,
+    CONF_HOURS_FORWARD_TO_GET,
+    CONF_MAX_RESULTS,
+    CONF_SENSITIVITY_EXCLUDE,
+    CONF_TRACK,
+    CONF_TRACK_NEW_CALENDAR,
+    CONF_UPDATE_INTERVAL,
+    DEFAULT_DAYS_BACKWARD,
+    DEFAULT_DAYS_FORWARD,
+    DEFAULT_UPDATE_INTERVAL,
+    YAML_CALENDARS_FILENAME,
+)
+from .filemgmt_integration import (
+    build_yaml_file_path,
+    build_yaml_filename,
+    read_calendar_yaml_file,
+    write_calendar_yaml_file,
+)
+from .utils_integration import async_delete_calendar
+
+INTEGRATION_CONFIG_VERSION = 2
+INRTEGRATION_CONFIG_MINOR_VERSION = 0
+
+
+def integration_reconfigure_schema(entry_data):
+    """Extend the scheme with integration specific attributes."""
+    return {
+        probatio.Optional(
+            CONF_ENABLE_UPDATE, default=entry_data[CONF_ENABLE_UPDATE]
+        ): BooleanSelector(),
+        probatio.Optional(
+            CONF_BASIC_CALENDAR, default=entry_data[CONF_BASIC_CALENDAR]
+        ): BooleanSelector(),
+        probatio.Optional(
+            CONF_GROUPS, default=entry_data[CONF_GROUPS]
+        ): BooleanSelector(),
+        probatio.Optional(
+            CONF_SHARED_MAILBOX,
+            description={"suggested_value": entry_data.get(CONF_SHARED_MAILBOX, None)},
+        ): cv.string,
+    }
+
+
+def integration_validate_schema(user_input):  # pylint: disable=unused-argument
+    """Validate the user input."""
+    if user_input.get(CONF_BASIC_CALENDAR) and user_input.get(CONF_SHARED_MAILBOX):
+        return {CONF_BASIC_CALENDAR: "cannot_have_basic_shared"}
+    if user_input.get(CONF_BASIC_CALENDAR) and user_input.get(CONF_ENABLE_UPDATE):
+        return {CONF_BASIC_CALENDAR: "cannot_have_basic_update"}
+    if user_input.get(CONF_GROUPS) and user_input.get(CONF_SHARED_MAILBOX):
+        return {CONF_GROUPS: "cannot_have_groups_shared"}
+    return {}
+
+
+class MS365OptionsFlowHandler(config_entries.OptionsFlow):
+    """Config flow options for MS365."""
+
+    def __init__(self, entry: MS365ConfigEntry) -> None:
+        """Initialize MS365 options flow."""
+
+        self._track_new_calendar = entry.options.get(CONF_TRACK_NEW_CALENDAR, True)
+        self._calendars = []
+        self._calendar_list = []
+        self._calendar_list_selected = []
+        self._calendar_list_selected_original = []
+        self._yaml_filename = build_yaml_filename(entry, YAML_CALENDARS_FILENAME)
+        self._yaml_filepath = None
+        self._calendar_no = 0
+        self._user_input = None
+
+    async def async_step_init(
+        self,
+        user_input=None,  # pylint: disable=unused-argument
+    ) -> ConfigFlowResult:
+        """Set up the option flow."""
+
+        self._yaml_filepath = build_yaml_file_path(self.hass, self._yaml_filename)
+        self._calendars = await self.hass.async_add_executor_job(
+            read_calendar_yaml_file,
+            self._yaml_filepath,
+        )
+
+        if not self._calendars:
+            return self.async_abort(reason="no_calendars")
+
+        for calendar in self._calendars:
+            for entity in calendar.get(CONF_ENTITIES):
+                self._calendar_list.append(entity[CONF_DEVICE_ID])
+                if entity[CONF_TRACK]:
+                    self._calendar_list_selected.append(entity[CONF_DEVICE_ID])
+
+        self._calendar_list_selected_original = deepcopy(self._calendar_list_selected)
+        return await self.async_step_user()
+
+    async def async_step_user(self, user_input=None) -> ConfigFlowResult:
+        """Handle a flow initialized by the user."""
+        errors = {}
+
+        if user_input:
+            self._user_input = user_input
+            self._track_new_calendar = user_input[CONF_TRACK_NEW_CALENDAR]
+            self._calendar_list_selected = user_input[CONF_CALENDAR_LIST]
+
+            for calendar in self._calendars:
+                for entity in calendar[CONF_ENTITIES]:
+                    entity[CONF_TRACK] = (
+                        entity[CONF_DEVICE_ID] in self._calendar_list_selected
+                    )
+
+            return await self.async_step_calendar_config()
+
+        return self.async_show_form(
+            step_id="user",
+            description_placeholders={
+                CONF_ENTITY_NAME: self.config_entry.data[CONF_ENTITY_NAME]
+            },
+            data_schema=probatio.Schema(
+                {
+                    probatio.Optional(
+                        CONF_CALENDAR_LIST, default=self._calendar_list_selected
+                    ): cv.multi_select(self._calendar_list),
+                    probatio.Optional(
+                        CONF_TRACK_NEW_CALENDAR,
+                        default=self._track_new_calendar,
+                    ): BooleanSelector(),
+                    probatio.Optional(CONF_ADVANCED_OPTIONS): section(
+                        probatio.Schema(
+                            {
+                                probatio.Optional(
+                                    CONF_UPDATE_INTERVAL,
+                                    default=self.config_entry.options.get(
+                                        CONF_ADVANCED_OPTIONS, {}
+                                    ).get(
+                                        CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
+                                    ),
+                                ): probatio.All(
+                                    probatio.Coerce(int),
+                                    probatio.Range(min=15, max=600),
+                                ),
+                                probatio.Optional(
+                                    CONF_DAYS_BACKWARD,
+                                    default=self.config_entry.options.get(
+                                        CONF_ADVANCED_OPTIONS, {}
+                                    ).get(CONF_DAYS_BACKWARD, DEFAULT_DAYS_BACKWARD),
+                                ): probatio.All(
+                                    probatio.Coerce(int),
+                                    probatio.Range(min=-90, max=90),
+                                ),
+                                probatio.Optional(
+                                    CONF_DAYS_FORWARD,
+                                    default=self.config_entry.options.get(
+                                        CONF_ADVANCED_OPTIONS, {}
+                                    ).get(CONF_DAYS_FORWARD, DEFAULT_DAYS_FORWARD),
+                                ): probatio.All(
+                                    probatio.Coerce(int),
+                                    probatio.Range(min=-90, max=90),
+                                ),
+                            }
+                        ),
+                        {"collapsed": True},
+                    ),
+                }
+            ),
+            errors=errors,
+            last_step=False,
+        )
+
+    async def async_step_calendar_config(self, user_input=None) -> ConfigFlowResult:
+        """Handle calendar setup."""
+        if user_input is not None:
+            for calendar in self._calendars:
+                for entity in calendar[CONF_ENTITIES]:
+                    if (
+                        entity[CONF_DEVICE_ID]
+                        == self._calendar_list_selected[self._calendar_no - 1]
+                    ):
+                        add_attribute_to_item(entity, user_input, CONF_NAME)
+                        add_attribute_to_item(
+                            entity, user_input, CONF_HOURS_FORWARD_TO_GET
+                        )
+                        add_attribute_to_item(
+                            entity, user_input, CONF_HOURS_BACKWARD_TO_GET
+                        )
+                        add_attribute_to_item(entity, user_input, CONF_MAX_RESULTS)
+                        add_attribute_to_item(
+                            entity, user_input, CONF_SENSITIVITY_EXCLUDE
+                        )
+                        return await self.async_step_calendar_config()
+
+        if self._calendar_no == len(self._calendar_list_selected):
+            return await self._async_tidy_up(self._user_input)
+
+        calendar_item = self._get_calendar_item()
+        last_step = self._calendar_no == len(self._calendar_list_selected)
+        sensitivities = {i.value: i.name for i in EventSensitivity}
+        return self.async_show_form(
+            step_id="calendar_config",
+            description_placeholders={
+                CONF_ENTITY_NAME: self.config_entry.data[CONF_ENTITY_NAME],
+                CONF_DEVICE_ID: calendar_item[CONF_DEVICE_ID],
+            },
+            data_schema=probatio.Schema(
+                {
+                    probatio.Required(
+                        CONF_NAME,
+                        default=calendar_item[CONF_NAME],
+                    ): cv.string,
+                    probatio.Optional(
+                        CONF_HOURS_FORWARD_TO_GET,
+                        default=calendar_item.get(CONF_HOURS_FORWARD_TO_GET),
+                    ): probatio.Any(None, int),
+                    probatio.Optional(
+                        CONF_HOURS_BACKWARD_TO_GET,
+                        default=calendar_item.get(CONF_HOURS_BACKWARD_TO_GET),
+                    ): probatio.Any(None, int),
+                    probatio.Optional(
+                        CONF_MAX_RESULTS,
+                        description={
+                            "suggested_value": calendar_item.get(CONF_MAX_RESULTS)
+                        },
+                    ): cv.positive_int,
+                    probatio.Optional(
+                        CONF_SENSITIVITY_EXCLUDE,
+                        default=calendar_item.get(CONF_SENSITIVITY_EXCLUDE),
+                    ): probatio.Any(None, cv.multi_select(sensitivities)),
+                }
+            ),
+            last_step=last_step,
+        )
+
+    def _get_calendar_item(self):
+        self._calendar_no += 1
+        for calendar in self._calendars:
+            for entity in calendar[CONF_ENTITIES]:
+                if (
+                    entity[CONF_DEVICE_ID]
+                    == self._calendar_list_selected[self._calendar_no - 1]
+                ):
+                    return entity
+        return None  # pragma: no cover
+
+    async def _async_tidy_up(self, user_input):
+        await self.hass.async_add_executor_job(
+            write_calendar_yaml_file, self._yaml_filepath, self._calendars
+        )
+        for calendar in self._calendar_list_selected_original:
+            if calendar not in self._calendar_list_selected:
+                await self._async_delete_entity(calendar)
+        update = self.async_create_entry(title="", data=user_input)
+        # The update listener of a loaded entry reloads it when the options change
+        loaded = self.config_entry.state is ConfigEntryState.LOADED
+        changed = user_input != dict(self.config_entry.options)
+        if not (loaded and changed):
+            self.hass.config_entries.async_schedule_reload(self._config_entry_id)
+
+        return update
+
+    async def _async_delete_entity(self, device_id):
+        # The entity is found by its unique id, which holds the calendar id
+        for calendar in self._calendars:
+            for entity in calendar[CONF_ENTITIES]:
+                if entity[CONF_DEVICE_ID] == device_id:
+                    await async_delete_calendar(
+                        self.hass, self.config_entry, entity, calendar[CONF_CAL_ID]
+                    )
+                    break

@@ -1,0 +1,33 @@
+name: Python tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    name: Run tests (${{ matrix.suite }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Each upstream suite has its own conftest/fixtures, so they run separately.
+        suite: [unified, calendar, todo, mail, teams, contacts]
+
+    steps:
+      - name: "Checkout the repository"
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - name: Install Python 3.14
+        run: uv python install 3.14
+
+      - name: "Create venv"
+        run: uv venv
+
+      - name: "Install requirements"
+        run: uv pip install -r requirements_test.txt
+
+      - name: "Run pytest"
+        run: uv run pytest tests/${{ matrix.suite }} -n auto

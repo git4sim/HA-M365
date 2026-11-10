@@ -1,0 +1,210 @@
+# pylint: disable=unused-argument
+"""Test setup process."""
+
+from unittest.mock import patch
+
+from oauthlib.oauth2.rfc6749.errors import InvalidClientError
+import pytest
+from requests_mock import Mocker
+
+from homeassistant.config_entries import ConfigEntryState
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er, issue_registry as ir
+
+from tests.unified_shim import integration_issues
+
+from .helpers.mock_config_entry import service_view
+from .const import ENTITY_NAME, ENVIRONMENT_OPTIONS, TOKEN_LOCATION
+from .helpers.mock_config_entry import MS365MockConfigEntry
+from .helpers.utils import build_token_file
+from .integration.const_integration import BASE_TOKEN_PERMS, DOMAIN, FULL_INIT_ENTITY_NO
+from .integration.helpers_integration.mocks import MS365MOCKS
+
+
+async def test_full_init(
+    hass: HomeAssistant,
+    base_config_entry: MS365MockConfigEntry,
+    base_token,
+    requests_mock: Mocker,
+    entity_registry: er.EntityRegistry,
+):
+    """Test full MS365 initialisation."""
+    MS365MOCKS.standard_mocks(requests_mock)
+
+    base_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(base_config_entry.entry_id)
+    assert hasattr(service_view(base_config_entry).runtime_data, "options")
+
+    entities = er.async_entries_for_config_entry(entity_registry, base_config_entry.entry_id)
+    assert len(entities) == FULL_INIT_ENTITY_NO
+
+
+async def test_invalid_client_1(
+    hass: HomeAssistant,
+    requests_mock: Mocker,
+    base_token,
+    base_config_entry: MS365MockConfigEntry,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test an invalid client."""
+    MS365MOCKS.standard_mocks(requests_mock)
+    base_config_entry.add_to_hass(hass)
+
+    with patch(
+        "O365.Account.get_current_user_data",
+        side_effect=InvalidClientError(description="client secret expired"),
+    ):
+        await hass.config_entries.async_setup(base_config_entry.entry_id)
+    await hass.async_block_till_done()
+    assert "Client Secret expired for account" in caplog.text
+
+
+async def test_invalid_client_2(
+    hass: HomeAssistant,
+    requests_mock: Mocker,
+    base_token,
+    base_config_entry: MS365MockConfigEntry,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test an invalid client."""
+    MS365MOCKS.standard_mocks(requests_mock)
+    base_config_entry.add_to_hass(hass)
+
+    with patch(
+        "O365.Account.get_current_user_data",
+        side_effect=InvalidClientError(description="token error"),
+    ):
+        await hass.config_entries.async_setup(base_config_entry.entry_id)
+    await hass.async_block_till_done()
+    assert "Token error for account" in caplog.text
+
+
+async def test_legacy_token(
+    tmp_path,
+    hass: HomeAssistant,
+    base_config_entry: MS365MockConfigEntry,
+    requests_mock: Mocker,
+    legacy_token,
+    caplog: pytest.LogCaptureFixture,
+    issue_registry: ir.IssueRegistry,
+):
+    """Test with legacy token."""
+
+    MS365MOCKS.standard_mocks(requests_mock)
+
+    base_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(base_config_entry.entry_id)
+    assert f"Token no longer valid for integration '{DOMAIN}'" in caplog.text
+    assert len(integration_issues(issue_registry)) == 1
+
+
+async def test_remove_entry(
+    tmp_path,
+    setup_base_integration,
+    hass: HomeAssistant,
+    base_config_entry: MS365MockConfigEntry,
+):
+    """Test removal of entry."""
+
+    assert await hass.config_entries.async_remove(base_config_entry.entry_id)
+    await hass.async_block_till_done()
+    filename = tmp_path / TOKEN_LOCATION / f"{DOMAIN}_{ENTITY_NAME}.token"
+    assert not filename.is_file()
+
+
+async def test_expired_token(
+    hass: HomeAssistant,
+    requests_mock: Mocker,
+    base_token,
+    base_config_entry: MS365MockConfigEntry,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test an invalid client."""
+    MS365MOCKS.standard_mocks(requests_mock)
+    base_config_entry.add_to_hass(hass)
+
+    with patch(
+        "O365.Account.get_current_user_data",
+        side_effect=RuntimeError("Refresh token operation failed: invalid_grant"),
+    ):
+        await hass.config_entries.async_setup(base_config_entry.entry_id)
+    await hass.async_block_till_done()
+    assert "Token has expired for account: 'test'. Please re-configure and re-authenticate." in caplog.text
+
+
+async def test_other_runtime_error(
+    hass: HomeAssistant,
+    requests_mock: Mocker,
+    base_token,
+    base_config_entry: MS365MockConfigEntry,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test an invalid client."""
+    MS365MOCKS.standard_mocks(requests_mock)
+    base_config_entry.add_to_hass(hass)
+    error = "Random error"
+    with patch(
+        "O365.Account.get_current_user_data",
+        side_effect=RuntimeError(error),
+    ):
+        await hass.config_entries.async_setup(base_config_entry.entry_id)
+    await hass.async_block_till_done()
+    assert error in caplog.text
+
+
+async def test_setup_clears_repair_issue(
+    tmp_path,
+    hass: HomeAssistant,
+    base_config_entry: MS365MockConfigEntry,
+    requests_mock: Mocker,
+    issue_registry: ir.IssueRegistry,
+):
+    """Test a successful setup clears the repair issue of an earlier failure."""
+    MS365MOCKS.standard_mocks(requests_mock)
+    base_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(base_config_entry.entry_id)
+    await hass.async_block_till_done()
+    assert base_config_entry.state is ConfigEntryState.SETUP_ERROR
+    assert len(integration_issues(issue_registry)) == 1
+
+    build_token_file(tmp_path, BASE_TOKEN_PERMS)
+    assert await hass.config_entries.async_reload(base_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert base_config_entry.state is ConfigEntryState.LOADED
+    assert not integration_issues(issue_registry)
+
+
+async def test_remove_entry_clears_repair_issue(
+    hass: HomeAssistant,
+    base_config_entry: MS365MockConfigEntry,
+    issue_registry: ir.IssueRegistry,
+):
+    """Test removing an entry clears its repair issue."""
+    base_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(base_config_entry.entry_id)
+    await hass.async_block_till_done()
+    assert len(integration_issues(issue_registry)) == 1
+
+    assert await hass.config_entries.async_remove(base_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert not integration_issues(issue_registry)
+
+
+@pytest.mark.parametrize("base_config_entry", [ENVIRONMENT_OPTIONS], indirect=True)
+async def test_environment_variable_empty(
+    hass: HomeAssistant,
+    base_config_entry: MS365MockConfigEntry,
+    base_token,
+    requests_mock: Mocker,
+    caplog: pytest.LogCaptureFixture,
+):
+    """Test full MS365 initialisation."""
+    MS365MOCKS.standard_mocks(requests_mock)
+
+    base_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(base_config_entry.entry_id)
+
+    await hass.async_block_till_done()
+    assert "The specified client secret environment variable - MS365_CLIENT_SECRET - does not exist." in caplog.text
