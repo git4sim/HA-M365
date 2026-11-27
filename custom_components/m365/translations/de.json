@@ -91,14 +91,14 @@
       },
       "request_default": {
         "title": "Autorisierung erforderlich – {entity_name}",
-        "description": "Link öffnen, anmelden und die URL, auf die weitergeleitet wird, in dieses Feld kopieren und absenden.\n\n[Microsoft-365-Konto verknüpfen]({auth_url}){failed_permissions}",
+        "description": "Link öffnen, anmelden und die URL, auf die weitergeleitet wird, in dieses Feld kopieren und absenden. Bei der Kontoauswahl von Microsoft den Benutzer wählen, dessen Postfach, Kalender und Aufgaben genutzt werden sollen (kein unlizenziertes Admin-Konto).\n\n[Microsoft-365-Konto verknüpfen]({auth_url}){failed_permissions}",
         "data": {
           "url": "Zurückgegebene URL"
         }
       },
       "request_alt": {
         "title": "Autorisierung erforderlich – {entity_name}",
-        "description": "Zum Verknüpfen des Microsoft-365-Kontos den Link öffnen, anmelden und zustimmen:\n\n[Microsoft-365-Konto verknüpfen]({auth_url}){failed_permissions}",
+        "description": "Zum Verknüpfen des Microsoft-365-Kontos den Link öffnen, anmelden und zustimmen. Bei der Kontoauswahl von Microsoft den Benutzer wählen, dessen Postfach, Kalender und Aufgaben genutzt werden sollen (kein unlizenziertes Admin-Konto).\n\n[Microsoft-365-Konto verknüpfen]({auth_url}){failed_permissions}",
         "submit": "Autorisierung erfolgreich"
       }
     }

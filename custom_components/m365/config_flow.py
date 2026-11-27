@@ -265,6 +265,11 @@ class MS365ConfigFlow(ConfigFlow, domain=DOMAIN):
         except ValueError as err:
             _LOGGER.warning(ERROR_INVALID_TENANT, err)
             return AUTH_ERROR_INVALID_TENANT
+        # Always show Microsoft's account picker: otherwise the account already
+        # signed in to the browser (often an unlicensed admin) is used silently.
+        if self._url and "prompt=" not in self._url:
+            separator = "&" if "?" in self._url else "?"
+            self._url = f"{self._url}{separator}prompt=select_account"
         return False
 
     async def async_step_request_default(

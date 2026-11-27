@@ -91,14 +91,14 @@
       },
       "request_default": {
         "title": "Authorization Required - {entity_name}",
-        "description": "Complete the configuration by clicking on the link and copying the returned url into this field afterwards and submit\n\n[Link Microsoft 365 account]({auth_url}){failed_permissions}",
+        "description": "Complete the configuration by clicking on the link and copying the returned url into this field afterwards and submit. When Microsoft asks you to pick an account, choose the user whose mailbox, calendar and tasks you want (not an unlicensed admin account).\n\n[Link Microsoft 365 account]({auth_url}){failed_permissions}",
         "data": {
           "url": "Returned URL"
         }
       },
       "request_alt": {
         "title": "Authorization Required - {entity_name}",
-        "description": "To link your Microsoft 365 account, click the link, login, and authorize:\n\n[Link Microsoft 365 account]({auth_url}){failed_permissions}",
+        "description": "To link your Microsoft 365 account, click the link, login, and authorize. When Microsoft asks you to pick an account, choose the user whose mailbox, calendar and tasks you want (not an unlicensed admin account).\n\n[Link Microsoft 365 account]({auth_url}){failed_permissions}",
         "submit": "I authorized successfully"
       }
     }

@@ -143,6 +143,7 @@ async def test_config_flow_multiple_services(hass: HomeAssistant, requests_mock:
     assert result["step_id"] == "request_default"
     assert "Calendars.ReadWrite" in result["description_placeholders"]["auth_url"]
     assert "Chat.Read" in result["description_placeholders"]["auth_url"]
+    assert "prompt=select_account" in result["description_placeholders"]["auth_url"]
     assert "Mail" not in result["description_placeholders"]["auth_url"]
 
     result = await hass.config_entries.flow.async_configure(
