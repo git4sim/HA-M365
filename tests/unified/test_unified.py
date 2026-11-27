@@ -355,6 +355,7 @@ async def test_rejected_service_is_skipped(
     issues = ir.async_get(hass).issues
     issue = issues[(DOMAIN, f"service_unavailable_calendar_{unified_entry.entry_id}")]
     assert issue.translation_placeholders["error"].startswith("The mailbox is either inactive")
+    assert issue.translation_placeholders["signed_in"] == "John Doe <john@nomail.com>"
     assert await hass.config_entries.async_unload(unified_entry.entry_id)
 
 

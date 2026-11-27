@@ -271,7 +271,7 @@
     },
     "service_unavailable": {
       "title": "{service} is not available for {entity_name}",
-      "description": "Microsoft 365 rejected the {service} service for account {entity_name}, so it was skipped; the other services work normally.\n\nMicrosoft says: {error}\n\n\"The mailbox is either inactive, soft-deleted, or is hosted on-premise\" means the account has no Exchange Online mailbox (license), which Calendar, Mail, To Do and Contacts need. Assign a license that includes Exchange Online, or disable the service with *Reconfigure*. The service is tried again whenever the integration is reloaded."
+      "description": "Microsoft 365 rejected the {service} service for account {entity_name}, so it was skipped; the other services work normally.\n\nSigned in as: {signed_in}\n\nMicrosoft says: {error}\n\n\"The mailbox is either inactive, soft-deleted, or is hosted on-premise\" means the signed-in account has no Exchange Online mailbox, which Calendar, Mail, To Do and Contacts need. If that is not the account whose mailbox you want (for example an unlicensed admin or a guest account), *Reconfigure* and sign in with the right account; Microsoft may reuse the current sign-in, so sign out at login.microsoft.com first or use a private browser window. Otherwise assign a license that includes Exchange Online, or disable the service with *Reconfigure*. The service is tried again whenever the integration is reloaded."
     }
   },
   "exceptions": {

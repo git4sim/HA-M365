@@ -251,7 +251,7 @@
   "issues": {
     "service_unavailable": {
       "title": "{service} ist für {entity_name} nicht verfügbar",
-      "description": "Microsoft 365 hat den Dienst {service} für das Konto {entity_name} abgelehnt, er wurde übersprungen; die übrigen Dienste laufen normal.\n\nMeldung von Microsoft: {error}\n\n„The mailbox is either inactive, soft-deleted, or is hosted on-premise“ bedeutet, dass das Konto kein Exchange-Online-Postfach (Lizenz) hat – das brauchen Kalender, Mail, To Do und Kontakte. Eine Lizenz mit Exchange Online zuweisen oder den Dienst über *Neu konfigurieren* abschalten. Bei jedem Neuladen der Integration wird es erneut versucht."
+      "description": "Microsoft 365 hat den Dienst {service} für das Konto {entity_name} abgelehnt, er wurde übersprungen; die übrigen Dienste laufen normal.\n\nAngemeldet als: {signed_in}\n\nMeldung von Microsoft: {error}\n\n„The mailbox is either inactive, soft-deleted, or is hosted on-premise“ bedeutet, dass das angemeldete Konto kein Exchange-Online-Postfach hat – das brauchen Kalender, Mail, To Do und Kontakte. Ist das nicht das Konto, dessen Postfach gemeint ist (z. B. ein unlizenzierter Admin oder ein Gastkonto), über *Neu konfigurieren* mit dem richtigen Konto anmelden; Microsoft übernimmt evtl. die bestehende Anmeldung, daher vorher auf login.microsoft.com abmelden oder ein privates Browserfenster nutzen. Andernfalls eine Lizenz mit Exchange Online zuweisen oder den Dienst über *Neu konfigurieren* abschalten. Bei jedem Neuladen der Integration wird es erneut versucht."
     }
   }
 }

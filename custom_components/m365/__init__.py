@@ -79,7 +79,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: MS365ConfigEntry) -> boo
         DOMAIN,
         config_entry_id=entry.entry_id,
     ):
-        error = await _async_auth_checks(hass, entry, token_backend, ha_account, perms)
+        error, signed_in = await _async_auth_checks(
+            hass, entry, token_backend, ha_account, perms
+        )
 
         if error:
             url = f"{get_url(hass)}/config/integrations/integration/{DOMAIN}"
@@ -125,9 +127,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: MS365ConfigEntry) -> boo
             if not (message := _service_rejection(err)):
                 raise
             _LOGGER.warning(
-                "%s - service '%s' is not available for this account and was skipped: %s",
+                "%s - service '%s' is not available for %s and was skipped: %s",
                 entry.data.get(CONF_ENTITY_NAME),
                 name,
+                signed_in,
                 message,
             )
             ir.async_create_issue(
@@ -142,6 +145,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: MS365ConfigEntry) -> boo
                     "service": name,
                     CONF_ENTITY_NAME: entry.data.get(CONF_ENTITY_NAME),
                     "error": message,
+                    "signed_in": signed_in,
                 },
             )
             continue
@@ -202,13 +206,14 @@ async def async_remove_entry(hass: HomeAssistant, entry: MS365ConfigEntry) -> No
 
 async def _async_auth_checks(
     hass: HomeAssistant, entry: MS365ConfigEntry, token_backend, ha_account, perms
-):
+) -> tuple[str | bool, str]:
+    """Return (error, description of the signed-in Microsoft account)."""
     if not await hass.async_add_executor_job(token_backend.check_token_exists):
-        return TOKEN_FILE_MISSING
+        return TOKEN_FILE_MISSING, ""
 
     credentials, error = get_credentials(entry.data)
     if error:
-        return error
+        return error, ""
 
     entity_name = entry.data.get(CONF_ENTITY_NAME)
     main_resource = entry.data.get(CONF_SHARED_MAILBOX) or None
@@ -222,28 +227,47 @@ async def _async_auth_checks(
         or await perms.async_check_authorizations()
     )
     if error:
-        return error
+        return error, ""
 
     _LOGGER.debug("Do setup")
-    token_valid = await _async_check_token_valid(hass, ha_account.account, entity_name)
-    return False if token_valid else TOKEN_FILE_EXPIRED
+    user = await _async_check_token_valid(hass, ha_account.account, entity_name)
+    if user is None:
+        return TOKEN_FILE_EXPIRED, ""
+    return False, _describe_user(user, main_resource)
+
+
+def _describe_user(user, main_resource: str | None) -> str:
+    """Describe the signed-in account for repair issues and logs."""
+    upn = user.user_principal_name or user.mail or user.object_id
+    text = f"{user.full_name} <{upn}>" if user.full_name else str(upn)
+    if upn and "#EXT#" in upn.upper():
+        text += " (guest account of this tenant)"
+    if main_resource:
+        text += f", using mailbox {main_resource}"
+    return text
 
 
 async def _async_check_token_valid(hass: HomeAssistant, account, entity_name):
+    """Return the signed-in user, or None if the token is no longer valid."""
     try:
-        account = await hass.async_add_executor_job(account.get_current_user_data)
-        _LOGGER.info("Logged in user: %s, %s", account.full_name, account.object_id)
+        user = await hass.async_add_executor_job(account.get_current_user_data)
+        _LOGGER.info(
+            "Logged in user: %s, %s, %s",
+            user.full_name,
+            user.user_principal_name,
+            user.object_id,
+        )
 
     except InvalidClientError as err:
         if "client secret" in err.description and "expired" in err.description:
             _LOGGER.warning(SECRET_EXPIRED, entity_name)
         else:
             _LOGGER.warning(TOKEN_ERROR, entity_name, err.description)
-        return False
+        return None
     except RuntimeError as err:
         if "Refresh token operation failed: invalid_grant" in str(err):
             _LOGGER.warning(TOKEN_EXPIRED, entity_name)
-            return False
+            return None
         raise
 
-    return True
+    return user
